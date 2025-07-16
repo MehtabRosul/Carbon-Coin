@@ -56,7 +56,7 @@ export default function CarbonCockpitPage() {
         </CardHeader>
       </Card>
 
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-4xl mx-auto">
         {activeModule === "agri" && <AgriCarbonModule setAgriCO2={setAgriCO2} solarCO2={solarCO2} updateTotalImpact={updateTotalImpact} />}
         {activeModule === "solar" && <SolarCarbonModule setSolarCO2={setSolarCO2} agriCO2={agriCO2} updateTotalImpact={updateTotalImpact} />}
       </div>
@@ -222,5 +222,3 @@ function SolarCarbonModule({ setSolarCO2, agriCO2, updateTotalImpact }: { setSol
     </Card>
   )
 }
-
-    
