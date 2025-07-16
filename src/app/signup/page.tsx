@@ -62,7 +62,7 @@ export default function SignUpPage() {
 
   React.useEffect(() => {
     if (user) {
-      router.push("/dashboard");
+      router.push("/");
     }
   }, [user, router]);
 
@@ -73,7 +73,7 @@ export default function SignUpPage() {
         title: "Account Created",
         description: "Welcome! You have been successfully signed up.",
       });
-      router.push("/dashboard");
+      router.push("/");
     } catch (error: any) {
       let description = "An unexpected error occurred. Please try again.";
       if (error instanceof FirebaseError) {
@@ -107,7 +107,7 @@ export default function SignUpPage() {
         title: "Signed In Successfully",
         description: "Welcome back!",
       });
-      router.push("/dashboard");
+      router.push("/");
     } catch (error: any) {
       toast({
         title: "Google Sign-In Error",
