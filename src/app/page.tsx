@@ -146,7 +146,7 @@ export default function Home() {
                         Our platform provides specialized wizards to ensure accurate data entry for both agricultural and technological carbon reduction efforts. We empower you to capture the full scope of your environmental contributions.
                     </p>
                     <Button variant="link" className="p-0 h-auto mt-4 text-lg" asChild>
-                        <Link href="/dashboard">Learn More &rarr;</Link>
+                        <Link href="/learn-more">Learn More &rarr;</Link>
                     </Button>
                 </div>
             </div>
