@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Download, TrendingUp, Leaf, Car, Droplets, Flame } from "lucide-react"
+import { Download, TrendingUp, Leaf, Car, Droplets, Flame, Zap } from "lucide-react"
 
 const chartData = [
   { month: "January", savings: 186 },
