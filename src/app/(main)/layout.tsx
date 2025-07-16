@@ -26,28 +26,7 @@ export default function MainLayout({
             <Logo />
           </SidebarHeader>
           <SidebarContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Dashboard">
-                  <Link href="/dashboard"><LayoutDashboard /><span>Dashboard</span></Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="AgriCarbon">
-                  <Link href="/agricarbon"><Leaf /><span>AgriCarbon</span></Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Interventions">
-                  <Link href="/interventions"><Zap /><span>Interventions</span></Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Reports">
-                  <Link href="/reports"><FileText /><span>Reports</span></Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
+            
           </SidebarContent>
           <SidebarFooter>
             <UserMenu />
