@@ -16,7 +16,7 @@ export default function Home() {
   const { user, loading, logout } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
-  const getStartedLink = user ? "/dashboard" : "/login";
+  const getStartedLink = user ? "/start" : "/login";
 
   const handleLogout = async () => {
     try {
