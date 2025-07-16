@@ -66,6 +66,13 @@ export default function OnboardingPage() {
           </CardHeader>
         </Card>
       </div>
+
+       <div className="text-center mt-16 max-w-4xl mx-auto">
+          <h2 className="text-3xl font-headline font-bold">Ready to Make an Impact?</h2>
+          <p className="text-muted-foreground mt-4">
+            Use our powerful tools to quantify your sustainability efforts, gain valuable insights, and generate compelling reports. Whether you're tracking farm-level carbon sequestration or the benefits of new technology, Carbon Coin provides the clarity you need to showcase your positive environmental impact. Start by selecting a module above to log your first data points.
+          </p>
+        </div>
     </div>
   )
 }
