@@ -13,7 +13,7 @@ export default function OnboardingPage() {
     }
 
   return (
-    <div className="flex-grow flex flex-col items-center justify-center">
+    <div className="flex-grow flex flex-col items-center justify-start pt-24">
       <div className="text-center mb-12">
         <h1 className="text-4xl font-headline font-bold">Choose Your Starting Point</h1>
         <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">
