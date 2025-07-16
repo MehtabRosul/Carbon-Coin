@@ -83,14 +83,16 @@ export default function Home() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <header className="container mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-        <Logo />
-        <nav className="flex items-center gap-4">
-          <AuthNav />
-        </nav>
+      <header className="fixed top-0 left-0 right-0 z-50 bg-background/10 backdrop-blur-sm">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+          <Logo />
+          <nav className="flex items-center gap-4">
+            <AuthNav />
+          </nav>
+        </div>
       </header>
       <main className="flex-grow">
-        <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32 text-center">
+        <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32 text-center pt-40 md:pt-48">
           <h1 className="text-4xl md:text-6xl font-headline font-bold tracking-tight mb-4">
             Unlock the Value of Your Green Initiatives.
           </h1>
