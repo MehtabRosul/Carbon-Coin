@@ -47,9 +47,14 @@ export default function Home() {
 
     if (user) {
       return (
-        <Button variant="ghost" onClick={handleLogout}>
-          Log Out
-        </Button>
+        <>
+          <Button variant="ghost" asChild>
+            <Link href="/dashboard">Dashboard</Link>
+          </Button>
+          <Button variant="ghost" onClick={handleLogout}>
+            Log Out
+          </Button>
+        </>
       );
     }
 
