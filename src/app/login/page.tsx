@@ -29,6 +29,7 @@ import { useAuth } from "@/hooks/use-auth"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { Separator } from "@/components/ui/separator"
+import { FirebaseError } from "firebase/app"
 
 const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -74,9 +75,25 @@ export default function LoginPage() {
       });
       router.push("/dashboard");
     } catch (error: any) {
+      let description = "An unexpected error occurred. Please try again.";
+      if (error instanceof FirebaseError) {
+        switch (error.code) {
+          case 'auth/user-not-found':
+          case 'auth/invalid-email':
+            description = "No account found with that email address.";
+            break;
+          case 'auth/wrong-password':
+          case 'auth/invalid-credential':
+            description = "Incorrect password. Please try again.";
+            break;
+          default:
+            description = error.message;
+            break;
+        }
+      }
       toast({
         title: "Sign In Error",
-        description: error.message || "Invalid credentials. Please try again.",
+        description: description,
         variant: "destructive",
       });
     }
@@ -130,7 +147,12 @@ export default function LoginPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Password</FormLabel>
+                     <div className="flex items-center justify-between">
+                        <FormLabel>Password</FormLabel>
+                        <Button variant="link" size="sm" className="p-0 h-auto text-xs" asChild>
+                            <Link href="#">Forgot Password?</Link>
+                        </Button>
+                    </div>
                     <FormControl>
                       <Input type="password" placeholder="••••••••" {...field} />
                     </FormControl>
