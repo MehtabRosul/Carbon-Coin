@@ -2,7 +2,7 @@
 
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Leaf, Zap, BarChart, LogIn, Edit, FileText, CheckCircle } from "lucide-react";
+import { Leaf, Zap, BarChart, LogIn, Edit, FileText, CheckCircle, Banknote, Atom } from "lucide-react";
 import Image from 'next/image';
 
 export default function LearnMorePage() {
@@ -64,6 +64,40 @@ export default function LearnMorePage() {
                 </div>
             </div>
         </Card>
+        
+        <Card className="overflow-hidden">
+          <div className="grid md:grid-cols-2">
+             <div className="relative h-64 md:h-auto order-last md:order-first">
+                <Image src="https://placehold.co/600x400.png" alt="Financial charts and graphs" layout="fill" objectFit="cover" data-ai-hint="financial graph" />
+            </div>
+            <div className="p-6 md:p-8">
+              <h3 className="flex items-center gap-2 font-headline text-2xl mb-4">
+                  <Banknote className="h-6 w-6 text-primary" />
+                  <span>Understanding Carbon Credits</span>
+              </h3>
+              <p className="text-muted-foreground">
+                A carbon credit is a permit that allows the owner to emit one tonne of carbon dioxide or its equivalent. By reducing your emissions, you can generate these credits. Accurate data is crucial for verification. Carbon Coin provides the precise, auditable data you need to potentially sell your carbon credits on voluntary markets, turning your sustainable practices into a new revenue stream. This creates a powerful financial incentive to invest further in green technologies and regenerative agriculture.
+              </p>
+            </div>
+          </div>
+        </Card>
+        
+        <Card className="overflow-hidden">
+             <div className="grid md:grid-cols-2">
+                <div className="p-6 md:p-8">
+                    <h3 className="flex items-center gap-2 font-headline text-2xl mb-4">
+                        <Atom className="h-6 w-6 text-primary" />
+                        <span>The Importance of CO₂e</span>
+                    </h3>
+                    <p className="text-muted-foreground">
+                        CO₂e, or Carbon Dioxide Equivalent, is the standard unit for measuring greenhouse gas impact. Different gases have different global warming potentials (GWP). For instance, methane is far more potent than CO₂ over a shorter period. CO₂e converts the impact of all greenhouse gases into the equivalent amount of carbon dioxide, providing a single, consistent metric. Our platform calculates all savings in CO₂e, ensuring your total impact is represented accurately and according to global scientific standards.
+                    </p>
+                </div>
+                <div className="relative h-64 md:h-auto">
+                    <Image src="https://placehold.co/600x400.png" alt="Scientific illustration of molecules" layout="fill" objectFit="cover" data-ai-hint="science molecules" />
+                </div>
+            </div>
+        </Card>
 
         <Card>
             <CardHeader>
@@ -108,3 +142,5 @@ export default function LearnMorePage() {
     </div>
   );
 }
+
+  
