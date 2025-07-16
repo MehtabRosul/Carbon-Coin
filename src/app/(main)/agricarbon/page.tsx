@@ -1,245 +1,226 @@
 "use client"
 
 import * as React from "react"
-import { useForm, FormProvider, useFormContext, Controller } from "react-hook-form"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Progress } from "@/components/ui/progress"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Leaf, Sun, CheckCircle } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
-import { useAuth } from "@/hooks/use-auth"
-import { db } from "@/lib/firebase"
-import { ref, push, set } from "firebase/database"
+import { Leaf, Sun, Zap, Car, Droplets } from "lucide-react"
 
-const steps = [
-  {
-    title: "Plot Details",
-    description: "Basic information about your agricultural plot.",
-    icon: <Leaf className="h-6 w-6" />,
-  },
-  {
-    title: "Environmental Factors",
-    description: "Climate and soil conditions of your plot.",
-    icon: <Sun className="h-6 w-6" />,
-  },
-  {
-    title: "Review & Submit",
-    description: "Confirm your data before calculating savings.",
-    icon: <CheckCircle className="h-6 w-6" />,
-  },
-]
+type Module = "agri" | "solar"
+type TechType = "solar" | "ev" | "drip"
 
-export default function AgriCarbonPage() {
-  const [step, setStep] = React.useState(0)
-  const { toast } = useToast()
-  const { user } = useAuth()
-  const methods = useForm()
-  const { getValues, reset } = methods
+export default function CarbonCockpitPage() {
+  const [activeModule, setActiveModule] = React.useState<Module>("agri")
+  
+  // State for calculation results
+  const [agriCO2, setAgriCO2] = React.useState(0)
+  const [solarCO2, setSolarCO2] = React.useState(0)
 
-  const handleNext = () => setStep((prev) => Math.min(prev + 1, steps.length - 1))
-  const handleBack = () => setStep((prev) => Math.max(prev - 1, 0))
+  const updateTotalImpact = (agri: number, solar: number) => {
+    // This function doesn't need to do anything here as the state update will trigger re-render
+  }
 
-  const onSubmit = async (data: any) => {
-    if (!user) {
-      toast({
-        title: "Authentication Error",
-        description: "You must be logged in to submit data.",
-        variant: "destructive",
-      })
-      return
+  const totalImpact = agriCO2 + solarCO2
+
+  return (
+    <>
+      <PageHeader
+        title="CarbonCoin Cockpit"
+        description="Model your climate impact — from field to future."
+      />
+
+      <div className="flex justify-center gap-4 mb-8">
+        <Button
+          variant={activeModule === "agri" ? "default" : "outline"}
+          onClick={() => setActiveModule("agri")}
+        >
+          <Leaf className="mr-2" /> AgriCarbon
+        </Button>
+        <Button
+          variant={activeModule === "solar" ? "default" : "outline"}
+          onClick={() => setActiveModule("solar")}
+        >
+          <Sun className="mr-2" /> SolarCarbon
+        </Button>
+      </div>
+
+      <Card className="mb-8 bg-primary/5 border-primary/20">
+        <CardHeader className="text-center">
+          <CardTitle className="font-headline">Total CO₂e Impact</CardTitle>
+          <CardDescription className="text-4xl font-bold text-primary tracking-tight">
+            {totalImpact.toFixed(2)} tCO₂e
+          </CardDescription>
+        </CardHeader>
+      </Card>
+
+      <div className="max-w-2xl mx-auto">
+        {activeModule === "agri" && <AgriCarbonModule setAgriCO2={setAgriCO2} solarCO2={solarCO2} updateTotalImpact={updateTotalImpact} />}
+        {activeModule === "solar" && <SolarCarbonModule setSolarCO2={setSolarCO2} agriCO2={agriCO2} updateTotalImpact={updateTotalImpact} />}
+      </div>
+    </>
+  )
+}
+
+function AgriCarbonModule({ setAgriCO2, solarCO2, updateTotalImpact }: { setAgriCO2: (n: number) => void, solarCO2: number, updateTotalImpact: (a: number, s: number) => void }) {
+  const [initialSOC, setInitialSOC] = React.useState("")
+  const [finalSOC, setFinalSOC] = React.useState("")
+  const [agriYears, setAgriYears] = React.useState("1")
+
+  const calculateAgri = () => {
+    const iSOC = parseFloat(initialSOC) || 0
+    const fSOC = parseFloat(finalSOC) || 0
+    const years = parseInt(agriYears) || 1
+    
+    const agriResult = (fSOC - iSOC) / years
+    setAgriCO2(agriResult)
+    updateTotalImpact(agriResult, solarCO2)
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="font-headline flex items-center gap-2"><Leaf /> AgriCarbon Module</CardTitle>
+        <CardDescription>Calculate annual carbon change from soil organic content.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid gap-2">
+          <Label htmlFor="initialSOC">Initial Soil Organic Carbon (tC/ha)</Label>
+          <Input id="initialSOC" type="number" placeholder="e.g., 50" value={initialSOC} onChange={(e) => setInitialSOC(e.target.value)} />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="finalSOC">Final Soil Organic Carbon (tC/ha)</Label>
+          <Input id="finalSOC" type="number" placeholder="e.g., 55" value={finalSOC} onChange={(e) => setFinalSOC(e.target.value)} />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="agriYears">Years of Change</Label>
+          <Input id="agriYears" type="number" placeholder="e.g., 5" value={agriYears} onChange={(e) => setAgriYears(e.target.value)} />
+        </div>
+      </CardContent>
+      <CardFooter>
+        <Button onClick={calculateAgri}>Calculate Agri Impact</Button>
+      </CardFooter>
+    </Card>
+  )
+}
+
+function SolarCarbonModule({ setSolarCO2, agriCO2, updateTotalImpact }: { setSolarCO2: (n: number) => void, agriCO2: number, updateTotalImpact: (a: number, s: number) => void }) {
+  const [techType, setTechType] = React.useState<TechType>("solar")
+  const [fields, setFields] = React.useState<Record<string, string>>({})
+
+  const handleFieldChange = (id: string, value: string) => {
+    setFields(prev => ({ ...prev, [id]: value }))
+  }
+
+  const calculateSolar = () => {
+    const emissionFactor = parseFloat(fields.emissionFactor) || 0
+    let result = 0
+
+    if (techType === "solar") {
+      const capacity = parseFloat(fields.capacity) || 0
+      const hours = parseFloat(fields.hours) || 0
+      const days = parseFloat(fields.days) || 0
+      result = (capacity * hours * days * emissionFactor) / 1000
+    } else if (techType === "ev") {
+      const distance = parseFloat(fields.distance) || 0
+      const efficiency = parseFloat(fields.efficiency) || 1
+      result = ((distance / efficiency) * emissionFactor) / 1000
+    } else if (techType === "drip") {
+      const savedEnergy = parseFloat(fields.savedEnergy) || 0
+      result = (savedEnergy * emissionFactor) / 1000
     }
-    try {
-      const agriCarbonRef = ref(db, `users/${user.uid}/agriCarbon`)
-      const newEntryRef = push(agriCarbonRef)
-      await set(newEntryRef, { ...data, createdAt: new Date().toISOString() })
-      toast({
-        title: "AgriCarbon Data Submitted!",
-        description: "Your carbon savings have been calculated and added to your dashboard.",
-      })
-      reset()
-      setStep(0)
-    } catch (error) {
-      console.error("Firebase Error:", error)
-      toast({
-        title: "Submission Failed",
-        description: "Could not save your data. Please try again.",
-        variant: "destructive",
-      })
+    
+    setSolarCO2(result)
+    updateTotalImpact(agriCO2, result)
+  }
+
+  const renderTechFields = () => {
+    switch (techType) {
+      case "solar":
+        return (
+          <>
+            <div className="grid gap-2">
+              <Label htmlFor="capacity">System Capacity (kW)</Label>
+              <Input id="capacity" type="number" value={fields.capacity || ""} onChange={(e) => handleFieldChange(e.target.id, e.target.value)} />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="hours">Hours of Operation/Day</Label>
+              <Input id="hours" type="number" value={fields.hours || ""} onChange={(e) => handleFieldChange(e.target.id, e.target.value)} />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="days">Days/Year</Label>
+              <Input id="days" type="number" value={fields.days || ""} onChange={(e) => handleFieldChange(e.target.id, e.target.value)} />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="emissionFactor">Grid Emission Factor (kgCO₂e/kWh)</Label>
+              <Input id="emissionFactor" type="number" value={fields.emissionFactor || ""} onChange={(e) => handleFieldChange(e.target.id, e.target.value)} />
+            </div>
+          </>
+        )
+      case "ev":
+        return (
+          <>
+            <div className="grid gap-2">
+              <Label htmlFor="distance">Annual Distance Traveled (km)</Label>
+              <Input id="distance" type="number" value={fields.distance || ""} onChange={(e) => handleFieldChange(e.target.id, e.target.value)} />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="efficiency">Vehicle Efficiency (km/kWh)</Label>
+              <Input id="efficiency" type="number" value={fields.efficiency || ""} onChange={(e) => handleFieldChange(e.target.id, e.target.value)} />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="emissionFactor">Grid Emission Factor (kgCO₂e/kWh)</Label>
+              <Input id="emissionFactor" type="number" value={fields.emissionFactor || ""} onChange={(e) => handleFieldChange(e.target.id, e.target.value)} />
+            </div>
+          </>
+        )
+      case "drip":
+        return (
+          <>
+            <div className="grid gap-2">
+              <Label htmlFor="savedEnergy">Annual Energy Saved (kWh)</Label>
+              <Input id="savedEnergy" type="number" value={fields.savedEnergy || ""} onChange={(e) => handleFieldChange(e.target.id, e.target.value)} />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="emissionFactor">Grid Emission Factor (kgCO₂e/kWh)</Label>
+              <Input id="emissionFactor" type="number" value={fields.emissionFactor || ""} onChange={(e) => handleFieldChange(e.target.id, e.target.value)} />
+            </div>
+          </>
+        )
+      default:
+        return null
     }
   }
 
-  const progressValue = ((step + 1) / steps.length) * 100
-
   return (
-    <FormProvider {...methods}>
-      <PageHeader
-        title="AgriCarbon Wizard"
-        description="Enter your agricultural data to calculate carbon savings."
-      />
-      <div className="max-w-2xl mx-auto">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-4 mb-4">
-              <div className="p-3 bg-primary/10 rounded-full text-primary">{steps[step].icon}</div>
-              <div>
-                <CardTitle className="font-headline">{steps[step].title}</CardTitle>
-                <CardDescription>{steps[step].description}</CardDescription>
-              </div>
-            </div>
-            <Progress value={progressValue} className="w-full" />
-          </CardHeader>
-          <form onSubmit={methods.handleSubmit(onSubmit)}>
-            <CardContent className="min-h-[250px]">
-              {step === 0 && <Step1 />}
-              {step === 1 && <Step2 />}
-              {step === 2 && <Step3 formData={getValues()} />}
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              {step > 0 ? (
-                <Button type="button" variant="outline" onClick={handleBack}>
-                  Back
-                </Button>
-              ) : <div />}
-              {step < steps.length - 1 ? (
-                <Button type="button" onClick={handleNext}>
-                  Next
-                </Button>
-              ) : (
-                <Button type="submit">Submit for Calculation</Button>
-              )}
-            </CardFooter>
-          </form>
-        </Card>
-      </div>
-    </FormProvider>
-  )
-}
-
-function Step1() {
-  const { register, control } = useFormContext()
-  return (
-    <div className="space-y-4">
-      <div className="grid gap-2">
-        <Label htmlFor="plotId">Plot ID</Label>
-        <Input id="plotId" placeholder="e.g., PLOT-001" {...register("plotId")} />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="landUse">Land Use</Label>
-        <Controller
-          name="landUse"
-          control={control}
-          render={({ field }) => (
-            <Select onValueChange={field.onChange} defaultValue={field.value}>
-              <SelectTrigger id="landUse">
-                <SelectValue placeholder="Select land use type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="cropland">Cropland</SelectItem>
-                <SelectItem value="grassland">Grassland</SelectItem>
-                <SelectItem value="forest">Forest</SelectItem>
-                <SelectItem value="wetland">Wetland</SelectItem>
-              </SelectContent>
-            </Select>
-          )}
-        />
-      </div>
-       <div className="grid gap-2">
-        <Label htmlFor="plotSize">Plot Size (Hectares)</Label>
-        <Input id="plotSize" type="number" placeholder="e.g., 10.5" {...register("plotSize")} />
-      </div>
-    </div>
-  )
-}
-
-function Step2() {
-  const { register, control } = useFormContext()
-  return (
-    <div className="space-y-4">
-      <div className="grid gap-2">
-        <Label htmlFor="climateZone">Climate Zone</Label>
-        <Controller
-          name="climateZone"
-          control={control}
-          render={({ field }) => (
-            <Select onValueChange={field.onChange} defaultValue={field.value}>
-              <SelectTrigger id="climateZone">
-                <SelectValue placeholder="Select climate zone" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="tropical">Tropical</SelectItem>
-                <SelectItem value="temperate">Temperate</SelectItem>
-                <SelectItem value="arid">Arid</SelectItem>
-                <SelectItem value="continental">Continental</SelectItem>
-              </SelectContent>
-            </Select>
-          )}
-        />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="soilType">Soil Type</Label>
-        <Controller
-          name="soilType"
-          control={control}
-          render={({ field }) => (
-            <Select onValueChange={field.onChange} defaultValue={field.value}>
-              <SelectTrigger id="soilType">
-                <SelectValue placeholder="Select soil type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="sandy">Sandy</SelectItem>
-                <SelectItem value="clay">Clay</SelectItem>
-                <SelectItem value="loam">Loam</SelectItem>
-                <SelectItem value="silt">Silt</SelectItem>
-              </SelectContent>
-            </Select>
-          )}
-        />
-      </div>
-       <div className="grid gap-2">
-        <Label htmlFor="organicMatter">Soil Organic Matter (%)</Label>
-        <Input id="organicMatter" type="number" placeholder="e.g., 2.5" {...register("organicMatter")} />
-      </div>
-    </div>
-  )
-}
-
-function Step3({ formData }: { formData: any }) {
-    return (
-        <div>
-            <h3 className="text-lg font-medium mb-4">Review Your Entry</h3>
-            <div className="space-y-4 rounded-md border p-4">
-                <div className="flex justify-between">
-                    <span className="text-muted-foreground">Plot ID:</span>
-                    <span className="font-medium">{formData.plotId || "N/A"}</span>
-                </div>
-                <div className="flex justify-between">
-                    <span className="text-muted-foreground">Land Use:</span>
-                    <span className="font-medium">{formData.landUse || "N/A"}</span>
-                </div>
-                 <div className="flex justify-between">
-                    <span className="text-muted-foreground">Plot Size:</span>
-                    <span className="font-medium">{formData.plotSize ? `${formData.plotSize} Ha` : "N/A"}</span>
-                </div>
-                <div className="flex justify-between">
-                    <span className="text-muted-foreground">Climate Zone:</span>
-                    <span className="font-medium">{formData.climateZone || "N/A"}</span>
-                </div>
-                <div className="flex justify-between">
-                    <span className="text-muted-foreground">Soil Type:</span>
-                    <span className="font-medium">{formData.soilType || "N/A"}</span>
-                </div>
-                 <div className="flex justify-between">
-                    <span className="text-muted-foreground">Soil Organic Matter:</span>
-                    <span className="font-medium">{formData.organicMatter ? `${formData.organicMatter}%` : "N/A"}</span>
-                </div>
-            </div>
-             <p className="text-sm text-muted-foreground mt-4">
-                By submitting, you confirm that the provided data is accurate. The CO₂e calculation will be based on established scientific models.
-            </p>
+    <Card>
+      <CardHeader>
+        <CardTitle className="font-headline flex items-center gap-2"><Sun /> SolarCarbon Module</CardTitle>
+        <CardDescription>Calculate impact from technological interventions.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid gap-2">
+          <Label htmlFor="techType">Intervention Type</Label>
+          <Select value={techType} onValueChange={(v: TechType) => { setTechType(v); setFields({}); }}>
+            <SelectTrigger id="techType">
+              <SelectValue placeholder="Select a type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="solar"><div className="flex items-center gap-2"><Zap /> Solar Pump</div></SelectItem>
+              <SelectItem value="ev"><div className="flex items-center gap-2"><Car /> Electric Vehicle</div></SelectItem>
+              <SelectItem value="drip"><div className="flex items-center gap-2"><Droplets /> Drip Irrigation</div></SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-    )
+        {renderTechFields()}
+      </CardContent>
+      <CardFooter>
+        <Button onClick={calculateSolar}>Calculate Solar Impact</Button>
+      </CardFooter>
+    </Card>
+  )
 }
+
+    
