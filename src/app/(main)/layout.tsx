@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarFooter, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
-import { LayoutDashboard, Leaf, Zap, FileText, User, LogOut, Settings } from "lucide-react";
+import { User, LogOut, Settings } from "lucide-react";
 import Link from 'next/link';
 import { Logo } from '@/components/logo';
 import { useAuth } from "@/hooks/use-auth";
@@ -26,7 +26,7 @@ export default function MainLayout({
             <Logo />
           </SidebarHeader>
           <SidebarContent>
-            
+            {/* Sidebar content is intentionally left empty */}
           </SidebarContent>
           <SidebarFooter>
             <UserMenu />
