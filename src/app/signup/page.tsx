@@ -29,6 +29,7 @@ import { useAuth } from "@/hooks/use-auth"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { Separator } from "@/components/ui/separator"
+import { FirebaseError } from "firebase/app"
 
 const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -74,9 +75,26 @@ export default function SignUpPage() {
       });
       router.push("/dashboard");
     } catch (error: any) {
+      let description = "An unexpected error occurred. Please try again.";
+      if (error instanceof FirebaseError) {
+        switch (error.code) {
+          case 'auth/email-already-in-use':
+            description = "This email is already associated with an account. Please log in.";
+            break;
+          case 'auth/invalid-email':
+            description = "The email address you entered is not valid.";
+            break;
+          case 'auth/weak-password':
+            description = "Your password is too weak. Please choose a stronger one.";
+            break;
+          default:
+            description = error.message;
+            break;
+        }
+      }
       toast({
         title: "Sign Up Error",
-        description: error.message,
+        description: description,
         variant: "destructive",
       });
     }
