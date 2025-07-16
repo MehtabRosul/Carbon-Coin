@@ -100,7 +100,7 @@ export default function StartPage() {
         title: "Information Saved!",
         description: "Your preferences have been saved successfully.",
       });
-      router.push("/dashboard");
+      router.push("/onboarding");
     } catch (error) {
       console.error("Firebase Error:", error);
       toast({
