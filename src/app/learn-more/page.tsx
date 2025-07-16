@@ -1,6 +1,7 @@
 
+
 import { PageHeader } from "@/components/page-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Leaf, Zap, BarChart, LogIn, Edit, FileText, CheckCircle } from "lucide-react";
 import Image from 'next/image';
 
