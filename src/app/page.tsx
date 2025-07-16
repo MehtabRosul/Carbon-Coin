@@ -1,11 +1,34 @@
+"use client"
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Logo } from '@/components/logo';
-import { Leaf, Zap, BarChart, FileText } from 'lucide-react';
+import { Leaf, Zap, BarChart, FileText, Loader2 } from 'lucide-react';
 import Image from 'next/image';
+import { useAuth } from '@/hooks/use-auth';
+import React from 'react';
 
 export default function Home() {
+  const { user, loading } = useAuth();
+  const getStartedLink = user ? "/start" : "/login";
+
+  const GetStartedButton = ({isPrimary = false, isLg = false}) => {
+    if (loading) {
+      return (
+        <Button size={isLg ? "lg" : "default"} disabled>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Please wait
+        </Button>
+      )
+    }
+    return (
+        <Button size={isLg ? "lg" : "default"} asChild variant={isPrimary ? "default" : "ghost"}>
+            <Link href={getStartedLink}>{isPrimary ? "Start Tracking Now" : "Get Started"}</Link>
+        </Button>
+    )
+  }
+
   return (
     <div className="flex flex-col min-h-screen">
       <header className="container mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
@@ -14,9 +37,7 @@ export default function Home() {
           <Button variant="ghost" asChild>
             <Link href="/login">Log In</Link>
           </Button>
-          <Button asChild>
-            <Link href="/dashboard">Get Started</Link>
-          </Button>
+           <GetStartedButton />
         </nav>
       </header>
       <main className="flex-grow">
@@ -27,9 +48,7 @@ export default function Home() {
           <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
             Carbon Coin helps you quantify, track, and report your carbon savings from agricultural and technological interventions, turning sustainability efforts into measurable impact.
           </p>
-          <Button size="lg" asChild>
-            <Link href="/dashboard">Start Tracking Now</Link>
-          </Button>
+          <GetStartedButton isPrimary isLg />
         </section>
 
         <section className="bg-card py-20 md:py-24">
