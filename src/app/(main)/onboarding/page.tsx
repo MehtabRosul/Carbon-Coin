@@ -20,22 +20,7 @@ export default function OnboardingPage() {
           Select one of the modules below to begin your journey with Carbon Coin.
         </p>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-5xl">
-        <Card
-          className="flex flex-col items-center justify-center text-center p-8 hover:bg-accent/50 hover:shadow-lg transition-all cursor-pointer"
-          onClick={() => handleCardClick("/dashboard")}
-        >
-          <div className="p-4 bg-primary/10 rounded-full mb-4">
-            <LayoutDashboard className="h-10 w-10 text-primary" />
-          </div>
-          <CardHeader className="p-0">
-            <CardTitle className="font-headline">Carbon Credit Dashboard</CardTitle>
-            <CardDescription className="mt-2">
-              Visualize your carbon savings and track your progress.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
         <Card
           className="flex flex-col items-center justify-center text-center p-8 hover:bg-accent/50 hover:shadow-lg transition-all cursor-pointer"
           onClick={() => handleCardClick("/interventions")}
