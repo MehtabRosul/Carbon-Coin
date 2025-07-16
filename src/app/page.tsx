@@ -1,3 +1,4 @@
+
 "use client"
 
 import Link from 'next/link';
@@ -8,36 +9,80 @@ import { Leaf, Zap, BarChart, FileText, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { useAuth } from '@/hooks/use-auth';
 import React from 'react';
+import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
-  const { user, loading } = useAuth();
+  const { user, loading, logout } = useAuth();
+  const { toast } = useToast();
+  const router = useRouter();
   const getStartedLink = user ? "/start" : "/login";
 
-  const GetStartedButton = ({isPrimary = false, isLg = false}) => {
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast({
+        title: "Logged Out",
+        description: "You have been successfully logged out.",
+      });
+      router.push('/');
+    } catch (error) {
+      toast({
+        title: "Logout Failed",
+        description: "Could not log you out. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const AuthNav = () => {
+    if (loading) {
+      return (
+        <Button variant="ghost" disabled>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Loading...
+        </Button>
+      );
+    }
+
+    if (user) {
+      return (
+        <Button variant="ghost" onClick={handleLogout}>
+          Log Out
+        </Button>
+      );
+    }
+
+    return (
+      <Button variant="ghost" asChild>
+        <Link href="/login">Log In</Link>
+      </Button>
+    );
+  };
+
+  const GetStartedButton = ({ isPrimary = false, isLg = false }) => {
     if (loading) {
       return (
         <Button size={isLg ? "lg" : "default"} disabled>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Please wait
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Please wait
         </Button>
-      )
+      );
     }
     return (
-        <Button size={isLg ? "lg" : "default"} asChild variant={isPrimary ? "default" : "ghost"}>
-            <Link href={getStartedLink}>{isPrimary ? "Start Tracking Now" : "Get Started"}</Link>
-        </Button>
-    )
-  }
+      <Button size={isLg ? "lg" : "default"} asChild variant={isPrimary ? "default" : "ghost"}>
+        <Link href={getStartedLink}>{isPrimary ? "Start Tracking Now" : "Get Started"}</Link>
+      </Button>
+    );
+  };
 
   return (
     <div className="flex flex-col min-h-screen">
       <header className="container mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
         <Logo />
         <nav className="flex items-center gap-4">
-          <Button variant="ghost" asChild>
-            <Link href="/login">Log In</Link>
-          </Button>
-           <GetStartedButton />
+          <AuthNav />
+          <GetStartedButton />
         </nav>
       </header>
       <main className="flex-grow">
