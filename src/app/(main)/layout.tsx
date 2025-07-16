@@ -1,3 +1,7 @@
+
+"use client"
+
+import * as React from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -5,6 +9,9 @@ import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarFooter,
 import { LayoutDashboard, Leaf, Zap, FileText, User, LogOut, Settings } from "lucide-react";
 import Link from 'next/link';
 import { Logo } from '@/components/logo';
+import { useAuth } from "@/hooks/use-auth";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/hooks/use-toast";
 
 export default function MainLayout({
   children,
@@ -68,26 +75,47 @@ export default function MainLayout({
 }
 
 function UserMenu() {
+  const { user, logout } = useAuth()
+  const router = useRouter()
+  const { toast } = useToast()
+  
+  const handleLogout = async () => {
+    try {
+      await logout()
+      router.push("/login")
+      toast({
+        title: "Logged Out",
+        description: "You have been successfully logged out.",
+      })
+    } catch (error) {
+       toast({
+        title: "Logout Failed",
+        description: "Could not log you out. Please try again.",
+        variant: "destructive"
+      })
+    }
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="w-full justify-start items-center gap-2 p-2 h-auto text-left">
           <Avatar className="h-9 w-9">
-            <AvatarImage src="https://placehold.co/100x100.png" alt="User" data-ai-hint="user avatar" />
-            <AvatarFallback>UN</AvatarFallback>
+            <AvatarImage src={user?.photoURL || "https://placehold.co/100x100.png"} alt={user?.displayName || "User"} data-ai-hint="user avatar" />
+            <AvatarFallback>{user?.displayName?.charAt(0) || user?.email?.charAt(0) || "U"}</AvatarFallback>
           </Avatar>
           <div className="flex-grow overflow-hidden group-data-[collapsible=icon]:hidden">
-            <p className="text-sm font-medium truncate">User Name</p>
-            <p className="text-xs text-muted-foreground truncate">user@example.com</p>
+            <p className="text-sm font-medium truncate">{user?.displayName || "User Name"}</p>
+            <p className="text-xs text-muted-foreground truncate">{user?.email || "user@example.com"}</p>
           </div>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">User Name</p>
+            <p className="text-sm font-medium leading-none">{user?.displayName || "User Name"}</p>
             <p className="text-xs leading-none text-muted-foreground">
-              user@example.com
+              {user?.email}
             </p>
           </div>
         </DropdownMenuLabel>
@@ -103,12 +131,10 @@ function UserMenu() {
           <span>Settings</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <Link href="/login" passHref>
-          <DropdownMenuItem>
-            <LogOut className="mr-2 h-4 w-4" />
-            <span>Log out</span>
-          </DropdownMenuItem>
-        </Link>
+        <DropdownMenuItem onClick={handleLogout}>
+          <LogOut className="mr-2 h-4 w-4" />
+          <span>Log out</span>
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

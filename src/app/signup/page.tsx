@@ -32,7 +32,7 @@ import { Separator } from "@/components/ui/separator"
 
 const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
-  password: z.string().min(1, { message: "Password is required." }),
+  password: z.string().min(6, { message: "Password must be at least 6 characters." }),
 });
 
 function GoogleIcon() {
@@ -46,8 +46,8 @@ function GoogleIcon() {
   );
 }
 
-export default function LoginPage() {
-  const { signInWithEmail, signInWithGoogle, user } = useAuth();
+export default function SignUpPage() {
+  const { signUpWithEmail, signInWithGoogle, user } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -67,16 +67,16 @@ export default function LoginPage() {
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      await signInWithEmail(values.email, values.password);
+      await signUpWithEmail(values.email, values.password);
       toast({
-        title: "Signed In Successfully",
-        description: "Welcome back!",
+        title: "Account Created",
+        description: "Welcome! You have been successfully signed up.",
       });
       router.push("/dashboard");
     } catch (error: any) {
       toast({
-        title: "Sign In Error",
-        description: "Invalid credentials. Please try again.",
+        title: "Sign Up Error",
+        description: error.message,
         variant: "destructive",
       });
     }
@@ -106,8 +106,8 @@ export default function LoginPage() {
             <div className="mb-4 flex justify-center">
                 <Logo />
             </div>
-          <CardTitle className="font-headline text-2xl">Welcome Back</CardTitle>
-          <CardDescription>Enter your credentials to access your account.</CardDescription>
+          <CardTitle className="font-headline text-2xl">Create an Account</CardTitle>
+          <CardDescription>Enter your details to get started.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -139,24 +139,24 @@ export default function LoginPage() {
                 )}
               />
               <Button type="submit" className="w-full">
-                Log In
+                Sign Up
               </Button>
             </form>
           </Form>
-           <div className="relative my-4">
+          <div className="relative my-4">
             <Separator />
             <span className="absolute left-1/2 -translate-x-1/2 -top-3 bg-background px-2 text-xs text-muted-foreground">OR</span>
           </div>
           <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
             <GoogleIcon />
-            Sign In with Google
+            Sign Up with Google
           </Button>
         </CardContent>
         <CardFooter className="flex justify-center">
             <p className="text-sm text-muted-foreground">
-                Don't have an account?{" "}
+                Already have an account?{" "}
                 <Button variant="link" className="p-0 h-auto" asChild>
-                    <Link href="/signup">Sign Up</Link>
+                    <Link href="/login">Log In</Link>
                 </Button>
             </p>
         </CardFooter>
