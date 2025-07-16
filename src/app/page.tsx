@@ -16,7 +16,7 @@ export default function Home() {
   const { user, loading, logout } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
-  const getStartedLink = user ? "/start" : "/login";
+  const getStartedLink = user ? "/dashboard" : "/login";
 
   const handleLogout = async () => {
     try {
@@ -65,18 +65,18 @@ export default function Home() {
     );
   };
 
-  const GetStartedButton = ({ isPrimary = false, isLg = false }) => {
+  const LetsGetStartedButton = () => {
     if (loading) {
       return (
-        <Button size={isLg ? "lg" : "default"} disabled>
+        <Button size="lg" disabled>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           Please wait
         </Button>
       );
     }
     return (
-      <Button size={isLg ? "lg" : "default"} asChild variant={isPrimary ? "default" : "ghost"}>
-        <Link href={getStartedLink}>{isPrimary ? "Start Tracking Now" : "Get Started"}</Link>
+      <Button size="lg" asChild>
+        <Link href={getStartedLink}>Let's Get Started</Link>
       </Button>
     );
   };
@@ -87,7 +87,6 @@ export default function Home() {
         <Logo />
         <nav className="flex items-center gap-4">
           <AuthNav />
-          <GetStartedButton />
         </nav>
       </header>
       <main className="flex-grow">
@@ -98,7 +97,7 @@ export default function Home() {
           <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
             Carbon Coin helps you quantify, track, and report your carbon savings from agricultural and technological interventions, turning sustainability efforts into measurable impact.
           </p>
-          <GetStartedButton isPrimary isLg />
+          <LetsGetStartedButton />
         </section>
 
         <section className="bg-card py-20 md:py-24">
