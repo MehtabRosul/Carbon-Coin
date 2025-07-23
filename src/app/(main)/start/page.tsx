@@ -2,7 +2,7 @@
 "use client"
 
 import * as React from "react"
-import { Phone, Mail, User as UserIcon, CheckCircle } from "lucide-react"
+import { Phone, Mail, User as UserIcon } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { PageHeader } from "@/components/page-header"
 import { Input } from "@/components/ui/input"
@@ -41,12 +41,10 @@ export default function StartPage() {
 
     try {
       if (user) {
-        // Logged-in user
         const userRef = ref(db, `users/${user.uid}/startProfile`);
         await set(userRef, dataToSave);
-        router.push('/project-details');
+        router.push(`/project-details?uid=${user.uid}`);
       } else {
-        // Anonymous user - always create a new entry with a unique ID
         const anonUsersRef = ref(db, 'anonymousUsers');
         const newAnonUserRef = push(anonUsersRef);
         await set(newAnonUserRef, dataToSave);
@@ -70,8 +68,8 @@ export default function StartPage() {
     <div className="flex-grow flex flex-col items-center justify-center">
       <div className="w-full max-w-4xl">
         <PageHeader
-          title="How would you like to begin?"
-          description="Choose one of the options below to start your Carbon Coin journey."
+          title="Your Journey to Impact Starts Here"
+          description="By providing your details, you're taking the first step towards accurately measuring and understanding your environmental impact."
         />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
           <Card
@@ -148,9 +146,9 @@ export default function StartPage() {
         </div>
 
         <div className="text-center mt-12 max-w-3xl mx-auto">
-          <h2 className="text-2xl font-headline font-bold">Your Journey to Impact Starts Here</h2>
+          <h2 className="text-2xl font-headline font-bold">Personalize Your Experience</h2>
           <p className="text-muted-foreground mt-3">
-            By providing your details, you're taking the first step towards accurately measuring and understanding your environmental impact. Whether you're a new user or just exploring, this information allows Carbon Coin to prepare a personalized dashboard for you. After this step, you'll be able to explore our powerful calculators and visualization tools.
+            Whether you're a new user or just exploring, this information allows Carbon Coin to prepare a personalized dashboard for you. After this step, you'll be able to explore our powerful calculators and visualization tools.
           </p>
         </div>
       </div>

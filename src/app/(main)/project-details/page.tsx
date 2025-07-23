@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/use-auth"
 import { db } from "@/lib/firebase"
-import { ref, set } from "firebase/database"
+import { ref, update } from "firebase/database"
 
 export default function ProjectDetailsPage() {
   const router = useRouter()
@@ -33,17 +33,20 @@ export default function ProjectDetailsPage() {
     }
 
     const projectData = {
-      projectName,
-      location,
+      projectDetails: {
+        projectName,
+        location,
+      }
     }
 
     let dbRef;
     const anonId = searchParams.get('anonId');
+    const uid = searchParams.get('uid');
 
-    if (user) {
-      dbRef = ref(db, `users/${user.uid}/projectDetails`);
+    if (user && uid) {
+        dbRef = ref(db, `users/${uid}`);
     } else if (anonId) {
-      dbRef = ref(db, `anonymousUsers/${anonId}/projectDetails`);
+        dbRef = ref(db, `anonymousUsers/${anonId}`);
     } else {
         if(!loading) {
             toast({
@@ -56,7 +59,7 @@ export default function ProjectDetailsPage() {
     }
 
     try {
-      await set(dbRef, projectData);
+      await update(dbRef, projectData);
       toast({
         title: "Project Details Saved!",
         description: "Your project information has been stored successfully.",
