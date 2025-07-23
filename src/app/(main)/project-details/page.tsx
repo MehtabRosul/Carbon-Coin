@@ -12,10 +12,13 @@ import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/use-auth"
 import { db } from "@/lib/firebase"
 import { ref, update } from "firebase/database"
-import { Map, Marker } from "maplibre-gl"
-import 'maplibre-gl/dist/maplibre-gl.css';
 import { Separator } from "@/components/ui/separator"
-import { Target } from "lucide-react"
+import L from 'leaflet'
+import 'leaflet.locatecontrol'
+// @ts-ignore
+import 'leaflet-control-geocoder'
+
+// Leaflet's CSS is included in layout.tsx to avoid direct import here
 
 export default function ProjectDetailsPage() {
   const router = useRouter()
@@ -25,62 +28,71 @@ export default function ProjectDetailsPage() {
 
   const [projectName, setProjectName] = React.useState("")
   const [location, setLocation] = React.useState("")
-  const [latitude, setLatitude] = React.useState("")
-  const [longitude, setLongitude] = React.useState("")
+  const [latitude, setLatitude] = React.useState<number | null>(null)
+  const [longitude, setLongitude] = React.useState<number | null>(null)
 
-  const mapContainer = React.useRef<HTMLDivElement>(null)
-  const map = React.useRef<Map | null>(null)
-  const marker = React.useRef<Marker | null>(null)
-
-  const updateMap = (lon: number, lat: number) => {
-    if (map.current) {
-        map.current.setCenter([lon, lat]);
-        if (marker.current) {
-            marker.current.setLngLat([lon, lat]);
-        } else {
-            marker.current = new Marker().setLngLat([lon, lat]).addTo(map.current);
-        }
-    }
-  }
+  const mapRef = React.useRef<L.Map | null>(null)
+  const containerRef = React.useRef<HTMLDivElement>(null)
+  const markerRef = React.useRef<L.Marker | null>(null)
 
   React.useEffect(() => {
-    if (map.current || !mapContainer.current) return;
+    if (mapRef.current || !containerRef.current) return;
 
-    map.current = new Map({
-        container: mapContainer.current,
-        style: 'https://demotiles.maplibre.org/style.json',
-        center: [77.5946, 12.9716], // Default to Bangalore
-        zoom: 9
+    // 1) Initialize map
+    mapRef.current = L.map(containerRef.current).setView([20.59, 78.96], 5)
+
+    // 2) Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(mapRef.current)
+
+    const updateCoords = (lat: number, lng: number) => {
+        setLatitude(lat);
+        setLongitude(lng);
+        if (mapRef.current) {
+            const newLatLng = L.latLng(lat, lng);
+            mapRef.current.setView(newLatLng, 15);
+            if (markerRef.current) {
+                markerRef.current.setLatLng(newLatLng);
+            } else {
+                markerRef.current = L.marker(newLatLng).addTo(mapRef.current);
+            }
+        }
+    }
+
+    // 3) Geolocate control
+    // @ts-ignore
+    L.control.locate({
+        flyTo: true,
+        onLocationError: console.error
+    }).addTo(mapRef.current)
+        .on('locationfound', (e: any) => {
+            updateCoords(e.latitude, e.longitude);
+        });
+    
+    // 4) Click to pick
+    mapRef.current.on('click', (e: L.LeafletMouseEvent) => {
+        updateCoords(e.latlng.lat, e.latlng.lng);
     });
 
-     map.current.on('click', (e) => {
-        const { lng, lat } = e.lngLat;
-        setLongitude(lng.toString());
-        setLatitude(lat.toString());
-        updateMap(lng, lat);
-    });
+    // 5) Address search box
+    // @ts-ignore
+    L.Control.geocoder({
+        defaultMarkGeocode: false
+    })
+    .on('markgeocode', (e: any) => {
+        const { center } = e.geocode;
+        updateCoords(center.lat, center.lng);
+    })
+    .addTo(mapRef.current);
 
     return () => {
-        map.current?.remove();
-    };
-  }, []);
-
-  const handleFetchLocation = () => {
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition((position) => {
-            const { longitude: lon, latitude: lat } = position.coords;
-            setLongitude(lon.toString());
-            setLatitude(lat.toString());
-            updateMap(lon, lat);
-        }, (error) => {
-            toast({
-                title: "Location Error",
-                description: "Could not fetch your location. Please enable location services or enter it manually.",
-                variant: "destructive"
-            })
-        })
+        mapRef.current?.remove();
+        mapRef.current = null;
     }
-  }
+  }, [])
+
 
   const handleSaveAndContinue = async () => {
     if (!projectName || !location) {
@@ -96,8 +108,8 @@ export default function ProjectDetailsPage() {
       projectDetails: {
         projectName,
         location,
-        latitude: parseFloat(latitude) || null,
-        longitude: parseFloat(longitude) || null,
+        latitude,
+        longitude,
       }
     }
 
@@ -136,15 +148,6 @@ export default function ProjectDetailsPage() {
       })
     }
   }
-  
-  React.useEffect(() => {
-    const lon = parseFloat(longitude);
-    const lat = parseFloat(latitude);
-    if (!isNaN(lon) && !isNaN(lat)) {
-        updateMap(lon, lat);
-    }
-  }, [latitude, longitude])
-
 
   return (
     <div className="flex-grow flex flex-col items-center justify-center">
@@ -182,20 +185,20 @@ export default function ProjectDetailsPage() {
             <Separator />
             <div className="space-y-4">
                 <CardTitle className="font-headline text-lg">Plot Location</CardTitle>
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                     <div className="space-y-2">
-                         <Label htmlFor="latitude">Latitude</Label>
-                         <Input id="latitude" placeholder="e.g., 12.9716" value={latitude} onChange={e => setLatitude(e.target.value)} />
-                     </div>
-                     <div className="space-y-2">
-                         <Label htmlFor="longitude">Longitude</Label>
-                         <Input id="longitude" placeholder="e.g., 77.5946" value={longitude} onChange={e => setLongitude(e.target.value)} />
-                     </div>
-                 </div>
-                 <Button variant="outline" onClick={handleFetchLocation}>
-                    <Target className="mr-2" /> Use My Location
-                 </Button>
-                <div ref={mapContainer} className="h-64 w-full rounded-md border" />
+                 <CardDescription>
+                    Search for an address, use your current location, or click on the map to select your plot.
+                 </CardDescription>
+                <div ref={containerRef} className="h-80 w-full rounded-md border" />
+                {latitude !== null && longitude !== null && (
+                    <div className="text-sm text-muted-foreground">
+                        <p>
+                           Selected Latitude: <strong>{latitude.toFixed(6)}</strong>
+                        </p>
+                        <p>
+                           Selected Longitude: <strong>{longitude.toFixed(6)}</strong>
+                        </p>
+                    </div>
+                )}
             </div>
           </CardContent>
         </Card>

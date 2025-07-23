@@ -19,6 +19,18 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Alegreya:wght@400;700&family=Belleza&display=swap" rel="stylesheet" />
+        <link
+          rel="stylesheet"
+          href="https://unpkg.com/leaflet/dist/leaflet.css"
+        />
+        <link
+          rel="stylesheet"
+          href="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.css"
+        />
+        <link
+          rel="stylesheet"
+          href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css"
+        />
       </head>
       <body className="font-body antialiased">
         <AuthProvider>
