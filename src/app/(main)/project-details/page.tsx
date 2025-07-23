@@ -27,10 +27,14 @@ export default function ProjectDetailsPage() {
   const [location, setLocation] = React.useState("")
   const [latitude, setLatitude] = React.useState<number | null>(null)
   const [longitude, setLongitude] = React.useState<number | null>(null)
+  const [manualLatitude, setManualLatitude] = React.useState("")
+  const [manualLongitude, setManualLongitude] = React.useState("")
 
   const mapRef = React.useRef<L.Map | null>(null)
   const containerRef = React.useRef<HTMLDivElement>(null)
   const markerRef = React.useRef<L.Marker | null>(null)
+
+  const updateCoordsRef = React.useRef<(lat: number, lng: number) => void>(() => {});
 
   React.useEffect(() => {
     if (mapRef.current || !containerRef.current) return;
@@ -56,6 +60,8 @@ export default function ProjectDetailsPage() {
       const updateCoords = (lat: number, lng: number) => {
           setLatitude(lat);
           setLongitude(lng);
+          setManualLatitude(lat.toFixed(6));
+          setManualLongitude(lng.toFixed(6));
           if (mapRef.current) {
               const newLatLng = L.latLng(lat, lng);
               mapRef.current.setView(newLatLng, 15);
@@ -66,6 +72,7 @@ export default function ProjectDetailsPage() {
               }
           }
       }
+      updateCoordsRef.current = updateCoords;
 
       // 3) Geolocate control
       // @ts-ignore
@@ -100,6 +107,21 @@ export default function ProjectDetailsPage() {
         mapRef.current = null;
     }
   }, [])
+
+  const handleManualSearch = () => {
+    const lat = parseFloat(manualLatitude)
+    const lon = parseFloat(manualLongitude)
+
+    if (!isNaN(lat) && !isNaN(lon)) {
+        updateCoordsRef.current(lat, lon);
+    } else {
+        toast({
+            title: "Invalid Coordinates",
+            description: "Please enter valid numbers for latitude and longitude.",
+            variant: "destructive"
+        })
+    }
+  }
 
 
   const handleSaveAndContinue = async () => {
@@ -194,8 +216,21 @@ export default function ProjectDetailsPage() {
             <div className="space-y-4">
                 <CardTitle className="font-headline text-lg">Plot Location</CardTitle>
                  <CardDescription>
-                    Search for an address, use your current location, or click on the map to select your plot.
+                    Search for an address, use your current location, or click on the map to select your plot. You can also enter coordinates manually.
                  </CardDescription>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="manualLat">Latitude</Label>
+                        <Input id="manualLat" type="number" placeholder="e.g. 28.6139" value={manualLatitude} onChange={e => setManualLatitude(e.target.value)} />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="manualLon">Longitude</Label>
+                        <Input id="manualLon" type="number" placeholder="e.g. 77.2090" value={manualLongitude} onChange={e => setManualLongitude(e.target.value)} />
+                    </div>
+                    <Button onClick={handleManualSearch} className="self-end">Search</Button>
+                </div>
+
                 <div ref={containerRef} className="h-80 w-full rounded-md border" />
                 {latitude !== null && longitude !== null && (
                     <div className="text-sm text-muted-foreground">
