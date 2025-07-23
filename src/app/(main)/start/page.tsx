@@ -44,21 +44,18 @@ export default function StartPage() {
         // Logged-in user
         const userRef = ref(db, `users/${user.uid}/startProfile`);
         await set(userRef, dataToSave);
+        router.push('/project-details');
       } else {
         // Anonymous user - always create a new entry with a unique ID
         const anonUsersRef = ref(db, 'anonymousUsers');
         const newAnonUserRef = push(anonUsersRef);
         await set(newAnonUserRef, dataToSave);
+        router.push(`/project-details?anonId=${newAnonUserRef.key}`);
       }
       toast({
         title: "Details Saved",
-        description: "Your information has been stored successfully.",
+        description: "Your information has been stored successfully. Now, let's get your project details.",
       });
-      // Optionally, clear fields and navigate away
-      setPhone("");
-      setEmail("");
-      setName("");
-      router.push('/onboarding');
     } catch (error) {
       console.error("Firebase error:", error);
       toast({
@@ -73,8 +70,8 @@ export default function StartPage() {
     <div className="flex-grow flex flex-col items-center justify-center">
       <div className="w-full max-w-4xl">
         <PageHeader
-          title="Let's Get Started"
-          description="Provide some basic information to personalize your experience. This helps us tailor your carbon tracking journey from the very beginning."
+          title="How would you like to begin?"
+          description="Choose one of the options below to start your Carbon Coin journey."
         />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
           <Card
