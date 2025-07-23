@@ -14,9 +14,6 @@ import { db } from "@/lib/firebase"
 import { ref, update } from "firebase/database"
 import { Separator } from "@/components/ui/separator"
 import type L from 'leaflet'
-import 'leaflet.locatecontrol'
-// @ts-ignore
-import 'leaflet-control-geocoder'
 
 // Leaflet's CSS is included in layout.tsx to avoid direct import here
 
@@ -38,8 +35,12 @@ export default function ProjectDetailsPage() {
   React.useEffect(() => {
     if (mapRef.current || !containerRef.current) return;
 
-    // Dynamically import leaflet
+    // Dynamically import leaflet and plugins
     import('leaflet').then(L => {
+      require('leaflet.locatecontrol')
+      // @ts-ignore
+      require('leaflet-control-geocoder')
+      
       if (!containerRef.current || mapRef.current) return;
 
       // 1) Initialize map
