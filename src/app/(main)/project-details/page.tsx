@@ -77,7 +77,13 @@ export default function ProjectDetailsPage() {
       // @ts-ignore
       const locateControl = L.control.locate({
           flyTo: true,
-          onLocationError: console.error
+          onLocationError: () => {
+            toast({
+              title: "Location Not Found",
+              description: "Could not find your location. Please search manually.",
+              variant: "destructive"
+            })
+          }
       }).addTo(mapRef.current);
       
       mapRef.current.on('locationfound', (e: any) => {
@@ -105,7 +111,7 @@ export default function ProjectDetailsPage() {
         mapRef.current?.remove();
         mapRef.current = null;
     }
-  }, [])
+  }, [toast])
 
   const handleManualSearch = () => {
     const lat = parseFloat(manualLatitude)
