@@ -49,7 +49,7 @@ export default function ProjectDetailsPage() {
       if (!containerRef.current || mapRef.current) return;
 
       // 1) Initialize map
-      mapRef.current = L.map(containerRef.current).setView([20.59, 78.96], 5)
+      mapRef.current = L.map(containerRef.current, { attributionControl: false }).setView([20.59, 78.96], 5)
 
       // 2) Add OpenStreetMap tiles
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
