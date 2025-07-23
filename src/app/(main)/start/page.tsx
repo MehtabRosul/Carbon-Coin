@@ -2,14 +2,95 @@
 "use client"
 
 import * as React from "react"
-import { Phone, Mail, User } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Phone, Mail, User as UserIcon, CheckCircle } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { PageHeader } from "@/components/page-header"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { cn } from "@/lib/utils"
+import { useAuth } from "@/hooks/use-auth"
+import { db } from "@/lib/firebase"
+import { ref, set, push } from "firebase/database"
+import { useToast } from "@/hooks/use-toast"
+import { useRouter } from "next/navigation"
+
+type SelectedOption = "phone" | "email" | "newUser"
 
 export default function StartPage() {
+  const [selectedOption, setSelectedOption] = React.useState<SelectedOption>("newUser")
+  const [phone, setPhone] = React.useState("")
+  const [email, setEmail] = React.useState("")
+  const [name, setName] = React.useState("")
+
+  const { user } = useAuth()
+  const { toast } = useToast()
+  const router = useRouter()
+
+  const handleContinue = async () => {
+    let dataToSave: { [key: string]: string } | null = null;
+    let dbPath: string | null = null;
+    let anonymousUserName: string | null = null;
+
+    switch (selectedOption) {
+      case "phone":
+        if (phone) dataToSave = { phone };
+        break
+      case "email":
+        if (email) dataToSave = { email };
+        break
+      case "newUser":
+        if (name) {
+          dataToSave = { name };
+          if (!user) {
+            anonymousUserName = name;
+          }
+        }
+        break
+      default:
+        toast({ title: "Error", description: "Please select an option.", variant: "destructive" })
+        return
+    }
+
+    if (!dataToSave) {
+      toast({ title: "Input Required", description: "Please enter your details.", variant: "destructive" })
+      return
+    }
+
+    try {
+      if (user) {
+        // Logged-in user
+        const userRef = ref(db, `users/${user.uid}/startProfile`);
+        await set(userRef, dataToSave);
+      } else {
+        // Anonymous user
+        if (anonymousUserName) {
+          const anonUserRef = ref(db, `anonymousUsers/${anonymousUserName}`);
+          await set(anonUserRef, dataToSave);
+        } else {
+            const anonUsersRef = ref(db, 'anonymousUsers');
+            const newAnonUserRef = push(anonUsersRef);
+            await set(newAnonUserRef, dataToSave);
+        }
+      }
+      toast({
+        title: "Details Saved",
+        description: "Your information has been stored successfully.",
+      });
+      // Optionally, clear fields and navigate away
+      setPhone("");
+      setEmail("");
+      setName("");
+      router.push('/onboarding');
+    } catch (error) {
+      console.error("Firebase error:", error);
+      toast({
+        title: "Save Failed",
+        description: "Could not save your details. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }
 
   return (
     <div className="flex-grow flex flex-col items-center justify-center">
@@ -19,7 +100,13 @@ export default function StartPage() {
           description="Choose one of the options below to start your Carbon Coin journey."
         />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
-          <Card className="flex flex-col">
+          <Card
+            className={cn(
+              "flex flex-col cursor-pointer transition-all",
+              selectedOption === "phone" ? "border-primary ring-2 ring-primary" : "hover:border-primary/50"
+            )}
+            onClick={() => setSelectedOption("phone")}
+          >
             <CardHeader className="items-center text-center">
               <div className="p-4 bg-primary/10 rounded-full mb-4">
                 <Phone className="h-10 w-10 text-primary" />
@@ -30,13 +117,19 @@ export default function StartPage() {
               <div className="space-y-4 flex-grow">
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone Number</Label>
-                  <Input id="phone" type="tel" placeholder="Enter your phone number" />
+                  <Input id="phone" type="tel" placeholder="Enter your phone number" value={phone} onChange={e => setPhone(e.target.value)} onClick={() => setSelectedOption("phone")} />
                 </div>
               </div>
             </CardContent>
           </Card>
           
-          <Card className="flex flex-col">
+          <Card
+            className={cn(
+              "flex flex-col cursor-pointer transition-all",
+              selectedOption === "email" ? "border-primary ring-2 ring-primary" : "hover:border-primary/50"
+            )}
+            onClick={() => setSelectedOption("email")}
+          >
             <CardHeader className="items-center text-center">
               <div className="p-4 bg-primary/10 rounded-full mb-4">
                 <Mail className="h-10 w-10 text-primary" />
@@ -47,16 +140,22 @@ export default function StartPage() {
               <div className="space-y-4 flex-grow">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email Address</Label>
-                  <Input id="email" type="email" placeholder="Enter your email" />
+                  <Input id="email" type="email" placeholder="Enter your email" value={email} onChange={e => setEmail(e.target.value)} onClick={() => setSelectedOption("email")} />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="flex flex-col">
+          <Card
+            className={cn(
+              "flex flex-col cursor-pointer transition-all",
+              selectedOption === "newUser" ? "border-primary ring-2 ring-primary" : "hover:border-primary/50"
+            )}
+            onClick={() => setSelectedOption("newUser")}
+          >
             <CardHeader className="items-center text-center">
               <div className="p-4 bg-primary/10 rounded-full mb-4">
-                <User className="h-10 w-10 text-primary" />
+                <UserIcon className="h-10 w-10 text-primary" />
               </div>
               <CardTitle className="font-headline">New User</CardTitle>
             </CardHeader>
@@ -64,14 +163,14 @@ export default function StartPage() {
               <div className="space-y-4 flex-grow">
                 <div className="space-y-2">
                   <Label htmlFor="name">Full Name</Label>
-                  <Input id="name" type="text" placeholder="Enter your full name" />
+                  <Input id="name" type="text" placeholder="Enter your full name" value={name} onChange={e => setName(e.target.value)} onClick={() => setSelectedOption("newUser")} />
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
         <div className="text-center mt-8">
-            <Button size="lg">Continue</Button>
+            <Button size="lg" onClick={handleContinue}>Continue</Button>
         </div>
       </div>
     </div>
