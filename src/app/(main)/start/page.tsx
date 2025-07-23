@@ -31,7 +31,7 @@ export default function StartPage() {
       email: email.trim(),
     };
 
-    if (!dataToSave.name && !dataToSave.phone && !dataTosave.email) {
+    if (!dataToSave.name && !dataToSave.phone && !dataToSave.email) {
       toast({ title: "Input Required", description: "Please enter at least one detail.", variant: "destructive" })
       return
     }
