@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/use-auth"
 import { db } from "@/lib/firebase"
-import { ref, update } from "firebase/database"
+import { ref, set } from "firebase/database"
 
 export default function ProjectDetailsPage() {
   const router = useRouter()
