@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/use-auth"
 import { db } from "@/lib/firebase"
 import { ref, update } from "firebase/database"
-import { Map, MapMarker } from "maplibre-gl"
+import { Map, Marker } from "maplibre-gl"
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { Separator } from "@/components/ui/separator"
 import { Target } from "lucide-react"
@@ -30,7 +30,7 @@ export default function ProjectDetailsPage() {
 
   const mapContainer = React.useRef<HTMLDivElement>(null)
   const map = React.useRef<Map | null>(null)
-  const marker = React.useRef<MapMarker | null>(null)
+  const marker = React.useRef<Marker | null>(null)
 
   const updateMap = (lon: number, lat: number) => {
     if (map.current) {
@@ -38,7 +38,7 @@ export default function ProjectDetailsPage() {
         if (marker.current) {
             marker.current.setLngLat([lon, lat]);
         } else {
-            marker.current = new MapMarker().setLngLat([lon, lat]).addTo(map.current);
+            marker.current = new Marker().setLngLat([lon, lat]).addTo(map.current);
         }
     }
   }
