@@ -64,7 +64,7 @@ export default function ProjectDetailsPage() {
           setManualLongitude(lng.toFixed(6));
           if (mapRef.current) {
               const newLatLng = L.latLng(lat, lng);
-              mapRef.current.setView(newLatLng, 15);
+              mapRef.current.flyTo(newLatLng, 15);
               if (markerRef.current) {
                   markerRef.current.setLatLng(newLatLng);
               } else {
