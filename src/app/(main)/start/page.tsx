@@ -29,7 +29,6 @@ export default function StartPage() {
 
   const handleContinue = async () => {
     let dataToSave: { [key: string]: string } | null = null;
-    let dbPath: string | null = null;
     let anonymousUserName: string | null = null;
 
     switch (selectedOption) {
@@ -68,6 +67,7 @@ export default function StartPage() {
           const anonUserRef = ref(db, `anonymousUsers/${anonymousUserName}`);
           await set(anonUserRef, dataToSave);
         } else {
+            // For phone or email, create a push ID
             const anonUsersRef = ref(db, 'anonymousUsers');
             const newAnonUserRef = push(anonUsersRef);
             await set(newAnonUserRef, dataToSave);
