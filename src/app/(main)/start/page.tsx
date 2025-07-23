@@ -73,8 +73,8 @@ export default function StartPage() {
     <div className="flex-grow flex flex-col items-center justify-center">
       <div className="w-full max-w-4xl">
         <PageHeader
-          title="How would you like to begin?"
-          description="Choose one of the options below to start your Carbon Coin journey."
+          title="Let's Get Started"
+          description="Provide some basic information to personalize your experience. This helps us tailor your carbon tracking journey from the very beginning."
         />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
           <Card
@@ -148,6 +148,13 @@ export default function StartPage() {
         </div>
         <div className="text-center mt-8">
             <Button size="lg" onClick={handleContinue}>Continue</Button>
+        </div>
+
+        <div className="text-center mt-12 max-w-3xl mx-auto">
+          <h2 className="text-2xl font-headline font-bold">Your Journey to Impact Starts Here</h2>
+          <p className="text-muted-foreground mt-3">
+            By providing your details, you're taking the first step towards accurately measuring and understanding your environmental impact. Whether you're a new user or just exploring, this information allows Carbon Coin to prepare a personalized dashboard for you. After this step, you'll be able to explore our powerful calculators and visualization tools.
+          </p>
         </div>
       </div>
     </div>
