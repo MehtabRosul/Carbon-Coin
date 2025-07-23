@@ -33,7 +33,6 @@ export default function StartPage() {
                   <Input id="phone" type="tel" placeholder="Enter your phone number" />
                 </div>
               </div>
-              <Button className="mt-4 w-full">Continue</Button>
             </CardContent>
           </Card>
           
@@ -51,7 +50,6 @@ export default function StartPage() {
                   <Input id="email" type="email" placeholder="Enter your email" />
                 </div>
               </div>
-              <Button className="mt-4 w-full">Continue</Button>
             </CardContent>
           </Card>
 
@@ -65,17 +63,15 @@ export default function StartPage() {
             <CardContent className="flex-grow flex flex-col">
               <div className="space-y-4 flex-grow">
                 <div className="space-y-2">
-                  <Label htmlFor="new-email">Email Address</Label>
-                  <Input id="new-email" type="email" placeholder="Enter your email" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <Input id="password" type="password" placeholder="Create a password" />
+                  <Label htmlFor="name">Full Name</Label>
+                  <Input id="name" type="text" placeholder="Enter your full name" />
                 </div>
               </div>
-              <Button className="mt-4 w-full">Sign Up</Button>
             </CardContent>
           </Card>
+        </div>
+        <div className="text-center mt-8">
+            <Button size="lg">Continue</Button>
         </div>
       </div>
     </div>
