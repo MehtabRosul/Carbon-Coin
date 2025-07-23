@@ -48,7 +48,7 @@ export default function ProjectDetailsPage() {
 
     map.current = new Map({
         container: mapContainer.current,
-        style: `https://api.maptiler.com/maps/streets-v2/style.json?key=${process.env.NEXT_PUBLIC_MAPTILER_API_KEY}`,
+        style: 'https://demotiles.maplibre.org/style.json',
         center: [77.5946, 12.9716], // Default to Bangalore
         zoom: 9
     });
