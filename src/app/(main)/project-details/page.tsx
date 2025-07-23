@@ -13,7 +13,7 @@ import { useAuth } from "@/hooks/use-auth"
 import { db } from "@/lib/firebase"
 import { ref, update } from "firebase/database"
 import { Separator } from "@/components/ui/separator"
-import L from 'leaflet'
+import type L from 'leaflet'
 import 'leaflet.locatecontrol'
 // @ts-ignore
 import 'leaflet-control-geocoder'
@@ -38,54 +38,59 @@ export default function ProjectDetailsPage() {
   React.useEffect(() => {
     if (mapRef.current || !containerRef.current) return;
 
-    // 1) Initialize map
-    mapRef.current = L.map(containerRef.current).setView([20.59, 78.96], 5)
+    // Dynamically import leaflet
+    import('leaflet').then(L => {
+      if (!containerRef.current || mapRef.current) return;
 
-    // 2) Add OpenStreetMap tiles
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(mapRef.current)
+      // 1) Initialize map
+      mapRef.current = L.map(containerRef.current).setView([20.59, 78.96], 5)
 
-    const updateCoords = (lat: number, lng: number) => {
-        setLatitude(lat);
-        setLongitude(lng);
-        if (mapRef.current) {
-            const newLatLng = L.latLng(lat, lng);
-            mapRef.current.setView(newLatLng, 15);
-            if (markerRef.current) {
-                markerRef.current.setLatLng(newLatLng);
-            } else {
-                markerRef.current = L.marker(newLatLng).addTo(mapRef.current);
-            }
-        }
-    }
+      // 2) Add OpenStreetMap tiles
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(mapRef.current)
 
-    // 3) Geolocate control
-    // @ts-ignore
-    L.control.locate({
-        flyTo: true,
-        onLocationError: console.error
-    }).addTo(mapRef.current)
-        .on('locationfound', (e: any) => {
-            updateCoords(e.latitude, e.longitude);
-        });
-    
-    // 4) Click to pick
-    mapRef.current.on('click', (e: L.LeafletMouseEvent) => {
-        updateCoords(e.latlng.lat, e.latlng.lng);
+      const updateCoords = (lat: number, lng: number) => {
+          setLatitude(lat);
+          setLongitude(lng);
+          if (mapRef.current) {
+              const newLatLng = L.latLng(lat, lng);
+              mapRef.current.setView(newLatLng, 15);
+              if (markerRef.current) {
+                  markerRef.current.setLatLng(newLatLng);
+              } else {
+                  markerRef.current = L.marker(newLatLng).addTo(mapRef.current);
+              }
+          }
+      }
+
+      // 3) Geolocate control
+      // @ts-ignore
+      L.control.locate({
+          flyTo: true,
+          onLocationError: console.error
+      }).addTo(mapRef.current)
+          .on('locationfound', (e: any) => {
+              updateCoords(e.latitude, e.longitude);
+          });
+      
+      // 4) Click to pick
+      mapRef.current.on('click', (e: L.LeafletMouseEvent) => {
+          updateCoords(e.latlng.lat, e.latlng.lng);
+      });
+
+      // 5) Address search box
+      // @ts-ignore
+      L.Control.geocoder({
+          defaultMarkGeocode: false
+      })
+      .on('markgeocode', (e: any) => {
+          const { center } = e.geocode;
+          updateCoords(center.lat, center.lng);
+      })
+      .addTo(mapRef.current);
     });
-
-    // 5) Address search box
-    // @ts-ignore
-    L.Control.geocoder({
-        defaultMarkGeocode: false
-    })
-    .on('markgeocode', (e: any) => {
-        const { center } = e.geocode;
-        updateCoords(center.lat, center.lng);
-    })
-    .addTo(mapRef.current);
 
     return () => {
         mapRef.current?.remove();
