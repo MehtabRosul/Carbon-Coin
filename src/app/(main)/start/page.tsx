@@ -15,7 +15,7 @@ import { ref, set, push } from "firebase/database"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 
-type SelectedOption = "phone" | "email" | "newUser"
+type SelectedOption = "newUser" | "phone" | "email"
 
 export default function StartPage() {
   const [selectedOption, setSelectedOption] = React.useState<SelectedOption>("newUser")
@@ -29,22 +29,16 @@ export default function StartPage() {
 
   const handleContinue = async () => {
     let dataToSave: { [key: string]: string } | null = null;
-    let anonymousUserName: string | null = null;
 
     switch (selectedOption) {
+      case "newUser":
+        if (name) dataToSave = { name };
+        break
       case "phone":
         if (phone) dataToSave = { phone };
         break
       case "email":
         if (email) dataToSave = { email };
-        break
-      case "newUser":
-        if (name) {
-          dataToSave = { name };
-          if (!user) {
-            anonymousUserName = name;
-          }
-        }
         break
       default:
         toast({ title: "Error", description: "Please select an option.", variant: "destructive" })
@@ -62,16 +56,10 @@ export default function StartPage() {
         const userRef = ref(db, `users/${user.uid}/startProfile`);
         await set(userRef, dataToSave);
       } else {
-        // Anonymous user
-        if (anonymousUserName) {
-          const anonUserRef = ref(db, `anonymousUsers/${anonymousUserName}`);
-          await set(anonUserRef, dataToSave);
-        } else {
-            // For phone or email, create a push ID
-            const anonUsersRef = ref(db, 'anonymousUsers');
-            const newAnonUserRef = push(anonUsersRef);
-            await set(newAnonUserRef, dataToSave);
-        }
+        // Anonymous user - always create a new entry with a unique ID
+        const anonUsersRef = ref(db, 'anonymousUsers');
+        const newAnonUserRef = push(anonUsersRef);
+        await set(newAnonUserRef, dataToSave);
       }
       toast({
         title: "Details Saved",
@@ -100,6 +88,29 @@ export default function StartPage() {
           description="Choose one of the options below to start your Carbon Coin journey."
         />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
+          <Card
+            className={cn(
+              "flex flex-col cursor-pointer transition-all",
+              selectedOption === "newUser" ? "border-primary ring-2 ring-primary" : "hover:border-primary/50"
+            )}
+            onClick={() => setSelectedOption("newUser")}
+          >
+            <CardHeader className="items-center text-center">
+              <div className="p-4 bg-primary/10 rounded-full mb-4">
+                <UserIcon className="h-10 w-10 text-primary" />
+              </div>
+              <CardTitle className="font-headline">New User</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-grow flex flex-col">
+              <div className="space-y-4 flex-grow">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Full Name</Label>
+                  <Input id="name" type="text" placeholder="Enter your full name" value={name} onChange={e => setName(e.target.value)} onClick={() => setSelectedOption("newUser")} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card
             className={cn(
               "flex flex-col cursor-pointer transition-all",
@@ -141,29 +152,6 @@ export default function StartPage() {
                 <div className="space-y-2">
                   <Label htmlFor="email">Email Address</Label>
                   <Input id="email" type="email" placeholder="Enter your email" value={email} onChange={e => setEmail(e.target.value)} onClick={() => setSelectedOption("email")} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card
-            className={cn(
-              "flex flex-col cursor-pointer transition-all",
-              selectedOption === "newUser" ? "border-primary ring-2 ring-primary" : "hover:border-primary/50"
-            )}
-            onClick={() => setSelectedOption("newUser")}
-          >
-            <CardHeader className="items-center text-center">
-              <div className="p-4 bg-primary/10 rounded-full mb-4">
-                <UserIcon className="h-10 w-10 text-primary" />
-              </div>
-              <CardTitle className="font-headline">New User</CardTitle>
-            </CardHeader>
-            <CardContent className="flex-grow flex flex-col">
-              <div className="space-y-4 flex-grow">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input id="name" type="text" placeholder="Enter your full name" value={name} onChange={e => setName(e.target.value)} onClick={() => setSelectedOption("newUser")} />
                 </div>
               </div>
             </CardContent>
