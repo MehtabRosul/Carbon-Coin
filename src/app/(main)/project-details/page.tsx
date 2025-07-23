@@ -12,6 +12,10 @@ import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/use-auth"
 import { db } from "@/lib/firebase"
 import { ref, update } from "firebase/database"
+import { Map, MapMarker } from "maplibre-gl"
+import 'maplibre-gl/dist/maplibre-gl.css';
+import { Separator } from "@/components/ui/separator"
+import { Target } from "lucide-react"
 
 export default function ProjectDetailsPage() {
   const router = useRouter()
@@ -21,6 +25,62 @@ export default function ProjectDetailsPage() {
 
   const [projectName, setProjectName] = React.useState("")
   const [location, setLocation] = React.useState("")
+  const [latitude, setLatitude] = React.useState("")
+  const [longitude, setLongitude] = React.useState("")
+
+  const mapContainer = React.useRef<HTMLDivElement>(null)
+  const map = React.useRef<Map | null>(null)
+  const marker = React.useRef<MapMarker | null>(null)
+
+  const updateMap = (lon: number, lat: number) => {
+    if (map.current) {
+        map.current.setCenter([lon, lat]);
+        if (marker.current) {
+            marker.current.setLngLat([lon, lat]);
+        } else {
+            marker.current = new MapMarker().setLngLat([lon, lat]).addTo(map.current);
+        }
+    }
+  }
+
+  React.useEffect(() => {
+    if (map.current || !mapContainer.current) return;
+
+    map.current = new Map({
+        container: mapContainer.current,
+        style: `https://api.maptiler.com/maps/streets-v2/style.json?key=${process.env.NEXT_PUBLIC_MAPTILER_API_KEY}`,
+        center: [77.5946, 12.9716], // Default to Bangalore
+        zoom: 9
+    });
+
+     map.current.on('click', (e) => {
+        const { lng, lat } = e.lngLat;
+        setLongitude(lng.toString());
+        setLatitude(lat.toString());
+        updateMap(lng, lat);
+    });
+
+    return () => {
+        map.current?.remove();
+    };
+  }, []);
+
+  const handleFetchLocation = () => {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition((position) => {
+            const { longitude: lon, latitude: lat } = position.coords;
+            setLongitude(lon.toString());
+            setLatitude(lat.toString());
+            updateMap(lon, lat);
+        }, (error) => {
+            toast({
+                title: "Location Error",
+                description: "Could not fetch your location. Please enable location services or enter it manually.",
+                variant: "destructive"
+            })
+        })
+    }
+  }
 
   const handleSaveAndContinue = async () => {
     if (!projectName || !location) {
@@ -36,6 +96,8 @@ export default function ProjectDetailsPage() {
       projectDetails: {
         projectName,
         location,
+        latitude: parseFloat(latitude) || null,
+        longitude: parseFloat(longitude) || null,
       }
     }
 
@@ -74,6 +136,15 @@ export default function ProjectDetailsPage() {
       })
     }
   }
+  
+  React.useEffect(() => {
+    const lon = parseFloat(longitude);
+    const lat = parseFloat(latitude);
+    if (!isNaN(lon) && !isNaN(lat)) {
+        updateMap(lon, lat);
+    }
+  }, [latitude, longitude])
+
 
   return (
     <div className="flex-grow flex flex-col items-center justify-center">
@@ -108,14 +179,32 @@ export default function ProjectDetailsPage() {
                 onChange={(e) => setLocation(e.target.value)}
               />
             </div>
+            <Separator />
+            <div className="space-y-4">
+                <CardTitle className="font-headline text-lg">Plot Location</CardTitle>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div className="space-y-2">
+                         <Label htmlFor="latitude">Latitude</Label>
+                         <Input id="latitude" placeholder="e.g., 12.9716" value={latitude} onChange={e => setLatitude(e.target.value)} />
+                     </div>
+                     <div className="space-y-2">
+                         <Label htmlFor="longitude">Longitude</Label>
+                         <Input id="longitude" placeholder="e.g., 77.5946" value={longitude} onChange={e => setLongitude(e.target.value)} />
+                     </div>
+                 </div>
+                 <Button variant="outline" onClick={handleFetchLocation}>
+                    <Target className="mr-2" /> Use My Location
+                 </Button>
+                <div ref={mapContainer} className="h-64 w-full rounded-md border" />
+            </div>
           </CardContent>
         </Card>
         <div className="text-center mt-8">
-          <Button size="lg" onClick={handleSaveAndContinue} disabled={loading}>
-            Save and Continue
+          <Button size="lg" onClick={handleSaveAndContinue}>
+            Save &amp; Continue
           </Button>
         </div>
       </div>
     </div>
-  )
+  );
 }
