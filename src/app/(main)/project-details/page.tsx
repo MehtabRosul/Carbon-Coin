@@ -37,6 +37,7 @@ export default function ProjectDetailsPage() {
 
     // Dynamically import leaflet and plugins
     import('leaflet').then(L => {
+      // These need to be required here to ensure they run on the client
       require('leaflet.locatecontrol')
       // @ts-ignore
       require('leaflet-control-geocoder')
@@ -71,10 +72,11 @@ export default function ProjectDetailsPage() {
       L.control.locate({
           flyTo: true,
           onLocationError: console.error
-      }).addTo(mapRef.current)
-          .on('locationfound', (e: any) => {
-              updateCoords(e.latitude, e.longitude);
-          });
+      }).addTo(mapRef.current);
+      
+      mapRef.current.on('locationfound', (e: any) => {
+          updateCoords(e.latitude, e.longitude);
+      });
       
       // 4) Click to pick
       mapRef.current.on('click', (e: L.LeafletMouseEvent) => {
