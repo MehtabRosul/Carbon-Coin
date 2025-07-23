@@ -54,7 +54,6 @@ export default function ProjectDetailsPage() {
       // 2) Add OpenStreetMap tiles
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
-        attribution: '&copy; OpenStreetMap contributors'
       }).addTo(mapRef.current)
 
       const updateCoords = (lat: number, lng: number) => {
@@ -76,7 +75,7 @@ export default function ProjectDetailsPage() {
 
       // 3) Geolocate control
       // @ts-ignore
-      L.control.locate({
+      const locateControl = L.control.locate({
           flyTo: true,
           onLocationError: console.error
       }).addTo(mapRef.current);
