@@ -28,25 +28,14 @@ export default function StartPage() {
   const router = useRouter()
 
   const handleContinue = async () => {
-    let dataToSave: { [key: string]: string } | null = null;
+    const dataToSave = {
+      name: name.trim(),
+      phone: phone.trim(),
+      email: email.trim(),
+    };
 
-    switch (selectedOption) {
-      case "newUser":
-        if (name) dataToSave = { name };
-        break
-      case "phone":
-        if (phone) dataToSave = { phone };
-        break
-      case "email":
-        if (email) dataToSave = { email };
-        break
-      default:
-        toast({ title: "Error", description: "Please select an option.", variant: "destructive" })
-        return
-    }
-
-    if (!dataToSave) {
-      toast({ title: "Input Required", description: "Please enter your details.", variant: "destructive" })
+    if (!dataToSave.name && !dataToSave.phone && !dataToSave.email) {
+      toast({ title: "Input Required", description: "Please enter at least one detail.", variant: "destructive" })
       return
     }
 
