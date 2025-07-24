@@ -353,7 +353,7 @@ function SOCCalculator() {
 }
 
 
-export default function InterventionsPage() {
+function InterventionsPageContent() {
   const [step, setStep] = React.useState(1);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -414,4 +414,12 @@ export default function InterventionsPage() {
       </div>
     </>
   )
+}
+
+export default function InterventionsPage() {
+    return (
+        <React.Suspense fallback={<div>Loading...</div>}>
+            <InterventionsPageContent />
+        </React.Suspense>
+    )
 }
