@@ -30,11 +30,20 @@ export default function ProjectDetailsForm() {
   const [manualLatitude, setManualLatitude] = React.useState("")
   const [manualLongitude, setManualLongitude] = React.useState("")
 
+  const [anonId, setAnonId] = React.useState<string | null>(null);
+  const [uid, setUid] = React.useState<string | null>(null);
+
+
   const mapRef = React.useRef<L.Map | null>(null)
   const containerRef = React.useRef<HTMLDivElement>(null)
   const markerRef = React.useRef<L.Marker | null>(null)
 
   const updateCoordsRef = React.useRef<(lat: number, lng: number) => void>(() => {});
+
+  React.useEffect(() => {
+    setAnonId(searchParams.get('anonId'));
+    setUid(searchParams.get('uid'));
+  }, [searchParams]);
 
   React.useEffect(() => {
     if (mapRef.current || !containerRef.current) return;
@@ -149,8 +158,6 @@ export default function ProjectDetailsForm() {
     }
 
     let dbRef;
-    const anonId = searchParams.get('anonId');
-    const uid = searchParams.get('uid');
 
     if (user && uid) {
         dbRef = ref(db, `users/${uid}`);
