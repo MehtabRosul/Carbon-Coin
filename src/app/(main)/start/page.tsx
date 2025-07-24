@@ -2,7 +2,7 @@
 "use client"
 
 import * as React from "react"
-import { Phone, Mail, User as UserIcon } from "lucide-react"
+import { Phone, Mail, Building2 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { PageHeader } from "@/components/page-header"
 import { Input } from "@/components/ui/input"
@@ -76,15 +76,15 @@ export default function StartPage() {
           >
             <CardHeader className="items-center text-center">
               <div className="p-4 bg-primary/10 rounded-full mb-4">
-                <UserIcon className="h-10 w-10 text-primary" />
+                <Building2 className="h-10 w-10 text-primary" />
               </div>
-              <CardTitle className="font-headline">New User</CardTitle>
+              <CardTitle className="font-headline">Company</CardTitle>
             </CardHeader>
             <CardContent className="flex-grow flex flex-col">
               <div className="space-y-4 flex-grow">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input id="name" type="text" placeholder="Enter your full name" value={name} onChange={e => setName(e.target.value)} />
+                  <Label htmlFor="name">Company Name</Label>
+                  <Input id="name" type="text" placeholder="Enter your company name" value={name} onChange={e => setName(e.target.value)} />
                 </div>
               </div>
             </CardContent>
