@@ -69,8 +69,10 @@ function AgriCarbonCalculator() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const dbPath = getDbPath();
+    const uid = searchParams.get('uid');
+    const anonId = searchParams.get('anonId');
 
-    if (!dbPath) {
+    if (!user && !uid && !anonId) {
       toast({ title: "Not Logged In", description: "You need to be logged in to add a plot.", variant: "destructive" });
       router.push('/login');
       return;
@@ -113,6 +115,7 @@ function AgriCarbonCalculator() {
     };
     
     try {
+        if (!dbPath) throw new Error("Database path not available");
         const plotsRef = ref(db, dbPath);
         const newPlotRef = push(plotsRef);
         await set(newPlotRef, newPlotData);
@@ -317,7 +320,8 @@ export default function InterventionsPage() {
     if (step > 1) {
       setStep(s => s - 1);
     } else {
-      router.push(`/agripv${queryString}&step=2`);
+       const separator = queryString ? '&' : '?';
+       router.push(`/agripv${queryString}${separator}step=2`);
     }
   };
 
