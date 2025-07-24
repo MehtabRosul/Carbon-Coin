@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/use-auth"
 import { db } from "@/lib/firebase"
-import { ref, set } from "firebase/database"
+import { ref, set, onValue } from "firebase/database"
 import { useRouter, useSearchParams } from "next/navigation"
 
 function SolarCarbonCalculator() {
@@ -19,6 +19,38 @@ function SolarCarbonCalculator() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const [results, setResults] = React.useState<{ [key: string]: number } | null>(null)
+    const formRef = React.useRef<HTMLFormElement>(null)
+
+     const getDbPath = React.useCallback(() => {
+        const uid = searchParams.get('uid');
+        const anonId = searchParams.get('anonId');
+        if (user?.uid) return `users/${user.uid}/calculations/solarCarbon`;
+        if (uid) return `users/${uid}/calculations/solarCarbon`;
+        if (anonId) return `anonymousUsers/${anonId}/calculations/solarCarbon`;
+        return null;
+    }, [user, searchParams]);
+
+    React.useEffect(() => {
+        const dbPath = getDbPath();
+        if (!dbPath) return;
+
+        const calcRef = ref(db, dbPath);
+        const unsubscribe = onValue(calcRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data && data.results) {
+                setResults(data.results);
+                if (formRef.current && data.inputs) {
+                    (formRef.current.elements.namedItem("solar") as HTMLInputElement).value = data.inputs.s || "";
+                    (formRef.current.elements.namedItem("agroforestry") as HTMLInputElement).value = data.inputs.a || "";
+                    (formRef.current.elements.namedItem("irrigation") as HTMLInputElement).value = data.inputs.d || "";
+                    (formRef.current.elements.namedItem("biogas") as HTMLInputElement).value = data.inputs.b || "";
+                    (formRef.current.elements.namedItem("ev") as HTMLInputElement).value = data.inputs.evInput || "";
+                }
+            }
+        });
+        return () => unsubscribe();
+    }, [getDbPath]);
+
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
@@ -38,32 +70,31 @@ function SolarCarbonCalculator() {
         const a = parseFloat(formData.get("agroforestry") as string) || 0
         const d = parseFloat(formData.get("irrigation") as string) || 0
         const b = parseFloat(formData.get("biogas") as string) || 0
-        const ev = parseFloat(formData.get("ev") as string) || 0
+        const evInput = parseFloat(formData.get("ev") as string) || 0
 
         const solar = s * 0.82
         const agro = a * 7
         const drip = ((d * 1200) / 1000) * 0.82
         const bio = (b * 1.8) / 1000
-        const evSavings = ev * 0.12
+        const evSavings = evInput * 0.12
         const total = solar + agro + drip + bio + evSavings
 
         const calculationResults = { solar, agro, drip, bio, ev: evSavings, total };
         setResults(calculationResults);
 
+        const dbPath = getDbPath();
+        if (!dbPath) {
+             toast({ title: "Error", description: "Could not identify user session.", variant: "destructive" });
+             return;
+        }
+
         try {
-            let path;
-            if (user?.uid) {
-                path = `users/${user.uid}/calculations/solarCarbon`
-            } else if (uid) {
-                 path = `users/${uid}/calculations/solarCarbon`
-            } else if (anonId) {
-                path = `anonymousUsers/${anonId}/calculations/solarCarbon`
-            } else {
-                 toast({ title: "Error", description: "Could not identify user session.", variant: "destructive" });
-                 return;
-            }
-            const calcRef = ref(db, path);
-            await set(calcRef, calculationResults);
+            const dataToSave = {
+                inputs: { s, a, d, b, evInput },
+                results: calculationResults
+            };
+            const calcRef = ref(db, dbPath);
+            await set(calcRef, dataToSave);
             toast({ title: "Calculation Saved", description: "Your SolarCarbon results have been saved." });
         } catch (error) {
             console.error("Firebase error:", error);
@@ -73,7 +104,9 @@ function SolarCarbonCalculator() {
     
     const handleClear = () => {
         setResults(null);
-        // Note: This does not clear the data from Firebase, only from the UI state.
+        if (formRef.current) {
+            formRef.current.reset();
+        }
     }
 
     return (
@@ -83,7 +116,7 @@ function SolarCarbonCalculator() {
                 <CardDescription>Calculate CO₂e savings from various interventions.</CardDescription>
             </CardHeader>
             <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} ref={formRef} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="solar">Solar Generated (MWh)</Label>
@@ -134,6 +167,35 @@ function DripIrrigationCalculator() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const [result, setResult] = React.useState<string | null>(null)
+    const formRef = React.useRef<HTMLFormElement>(null);
+
+    const getDbPath = React.useCallback(() => {
+        const uid = searchParams.get('uid');
+        const anonId = searchParams.get('anonId');
+        if (user?.uid) return `users/${user.uid}/calculations/dripIrrigation`;
+        if (uid) return `users/${uid}/calculations/dripIrrigation`;
+        if (anonId) return `anonymousUsers/${anonId}/calculations/dripIrrigation`;
+        return null;
+    }, [user, searchParams]);
+
+    React.useEffect(() => {
+        const dbPath = getDbPath();
+        if (!dbPath) return;
+
+        const calcRef = ref(db, dbPath);
+        const unsubscribe = onValue(calcRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data && data.totalSavings) {
+                const resultString = `Drip Irrigation: ${data.totalSavings.toFixed(2)} tCO₂e/year saved`;
+                setResult(resultString);
+                if (formRef.current) {
+                    (formRef.current.elements.namedItem("areaDrip") as HTMLInputElement).value = data.area || "";
+                    (formRef.current.elements.namedItem("dripFactor") as HTMLInputElement).value = data.factor || "1.5";
+                }
+            }
+        });
+        return () => unsubscribe();
+    }, [getDbPath]);
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
@@ -155,19 +217,14 @@ function DripIrrigationCalculator() {
         const resultString = `Drip Irrigation: ${total.toFixed(2)} tCO₂e/year saved`;
         setResult(resultString);
 
+        const dbPath = getDbPath();
+        if (!dbPath) {
+            toast({ title: "Error", description: "Could not identify user session.", variant: "destructive" });
+            return;
+        }
+
         try {
-            let path;
-            if (user?.uid) {
-                path = `users/${user.uid}/calculations/dripIrrigation`;
-            } else if (uid) {
-                path = `users/${uid}/calculations/dripIrrigation`;
-            } else if (anonId) {
-                path = `anonymousUsers/${anonId}/calculations/dripIrrigation`;
-            } else {
-                toast({ title: "Error", description: "Could not identify user session.", variant: "destructive" });
-                return;
-            }
-            const calcRef = ref(db, path);
+            const calcRef = ref(db, dbPath);
             await set(calcRef, { area, factor, totalSavings: total });
             toast({ title: "Calculation Saved", description: "Your drip irrigation results have been saved." });
         } catch (error) {
@@ -178,6 +235,9 @@ function DripIrrigationCalculator() {
 
      const handleClear = () => {
         setResult(null);
+        if (formRef.current) {
+            formRef.current.reset();
+        }
     }
 
     return (
@@ -187,7 +247,7 @@ function DripIrrigationCalculator() {
                 <CardDescription>Estimate savings from switching to drip irrigation.</CardDescription>
             </CardHeader>
             <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} ref={formRef} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="areaDrip">Area Covered (ha)</Label>
@@ -264,7 +324,7 @@ function AgriPVPageContent() {
                 Previous
             </Button>
             <Button onClick={handleNext}>
-                Next
+                {step === 2 ? 'Finish & Go to SOC' : 'Next'}
             </Button>
         </div>
       </div>
@@ -280,3 +340,5 @@ export default function AgriPVPage() {
     </React.Suspense>
   )
 }
+
+    

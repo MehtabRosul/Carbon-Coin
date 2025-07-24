@@ -35,6 +35,7 @@ function AgriCarbonCalculator() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const [plots, setPlots] = React.useState<AgriCarbonPlot[]>([]);
+  const formRef = React.useRef<HTMLFormElement>(null);
 
   const getDbPath = React.useCallback(() => {
     const uid = searchParams.get('uid');
@@ -108,6 +109,10 @@ function AgriCarbonCalculator() {
       landUse,
       climateZone,
       soilType,
+      initialSOC,
+      finalSOC,
+      timePeriod,
+      area,
       deltaSOC: delta,
       rate,
       totalSOC: total,
@@ -120,7 +125,7 @@ function AgriCarbonCalculator() {
         const newPlotRef = push(plotsRef);
         await set(newPlotRef, newPlotData);
         toast({ title: "Plot Added", description: "Your plot data has been saved successfully." });
-        (e.target as HTMLFormElement).reset();
+        if (formRef.current) formRef.current.reset();
     } catch (error) {
         console.error("Firebase error:", error);
         toast({ title: "Save Failed", description: "Could not save plot data. Please try again.", variant: "destructive" });
@@ -134,7 +139,7 @@ function AgriCarbonCalculator() {
         <CardDescription>Add plot data to calculate carbon sequestration based on soil organic carbon changes.</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} ref={formRef} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="grid gap-2"><Label htmlFor="plotID">Plot ID</Label><Input name="plotID" id="plotID" /></div>
             <div className="grid gap-2">
@@ -194,6 +199,41 @@ function SOCCalculator() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const [result, setResult] = React.useState<string | null>(null)
+    const formRef = React.useRef<HTMLFormElement>(null);
+
+    const getDbPath = React.useCallback(() => {
+        const uid = searchParams.get('uid');
+        const anonId = searchParams.get('anonId');
+        if(user?.uid) return `users/${user.uid}/calculations/socSequestration`;
+        if (uid) return `users/${uid}/calculations/socSequestration`;
+        if (anonId) return `anonymousUsers/${anonId}/calculations/socSequestration`;
+        return null;
+    }, [user, searchParams]);
+
+    React.useEffect(() => {
+        const dbPath = getDbPath();
+        if (!dbPath) return;
+
+        const calcRef = ref(db, dbPath);
+        const unsubscribe = onValue(calcRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data && data.co2e) {
+                const resultString = `${data.co2e.toFixed(2)} tCO₂e sequestered (Soil Type adjusted)`;
+                setResult(resultString);
+                if (formRef.current && data.inputs) {
+                    (formRef.current.elements.namedItem("socInit") as HTMLInputElement).value = data.inputs.socInit || "";
+                    (formRef.current.elements.namedItem("socFinal") as HTMLInputElement).value = data.inputs.socFinal || "";
+                    (formRef.current.elements.namedItem("bd") as HTMLInputElement).value = data.inputs.bd || "";
+                    (formRef.current.elements.namedItem("depth") as HTMLInputElement).value = data.inputs.depth || "";
+                    (formRef.current.elements.namedItem("areaSOC") as HTMLInputElement).value = data.inputs.areaSOC || "";
+                    const soilTypeSelect = formRef.current.elements.namedItem("soilTypeSOC") as HTMLSelectElement;
+                    if(soilTypeSelect) soilTypeSelect.value = data.inputs.soilFactor || "1";
+                }
+            }
+        });
+        return () => unsubscribe();
+    }, [getDbPath]);
+
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
@@ -208,12 +248,15 @@ function SOCCalculator() {
         }
 
         const formData = new FormData(e.currentTarget)
-        const socInit = (parseFloat(formData.get("socInit") as string) || 0) / 100
-        const socFinal = (parseFloat(formData.get("socFinal") as string) || 0) / 100
+        const socInitP = parseFloat(formData.get("socInit") as string) || 0
+        const socFinalP = parseFloat(formData.get("socFinal") as string) || 0
         const bd = parseFloat(formData.get("bd") as string) || 0
         const depth = parseFloat(formData.get("depth") as string) || 0
         const areaSOC = parseFloat(formData.get("areaSOC") as string) || 0
         const soilFactor = parseFloat(formData.get("soilTypeSOC") as string) || 1
+        
+        const socInit = socInitP / 100
+        const socFinal = socFinalP / 100
 
         const deltaSOC = socFinal - socInit
         const deltaSOCMass = deltaSOC * bd * depth
@@ -223,21 +266,18 @@ function SOCCalculator() {
         const resultString = `${co2e.toFixed(2)} tCO₂e sequestered (Soil Type adjusted)`
         setResult(resultString)
 
+        const dbPath = getDbPath();
+        if (!dbPath) {
+             toast({ title: "Error", description: "Could not identify user session.", variant: "destructive" });
+             return;
+        }
+
          try {
-            let path;
-            if(user?.uid) {
-                path = `users/${user.uid}/calculations/socSequestration`;
-            } else if (uid) {
-                path = `users/${uid}/calculations/socSequestration`;
-            } else if (anonId) {
-                path = `anonymousUsers/${anonId}/calculations/socSequestration`;
-            } else {
-                 toast({ title: "Error", description: "Could not identify user session.", variant: "destructive" });
-                 return;
-            }
-            
-            const calcRef = ref(db, path);
-            const dataToSave = { socInit: socInit*100, socFinal: socFinal*100, bd, depth, areaSOC, soilFactor, co2e };
+            const dataToSave = { 
+                inputs: { socInit: socInitP, socFinal: socFinalP, bd, depth, areaSOC, soilFactor }, 
+                co2e 
+            };
+            const calcRef = ref(db, dbPath);
             await set(calcRef, dataToSave);
             toast({ title: "Calculation Saved", description: "Your SOC Sequestration results have been saved." });
         } catch (error) {
@@ -248,6 +288,9 @@ function SOCCalculator() {
 
      const handleClear = () => {
         setResult(null);
+        if (formRef.current) {
+            formRef.current.reset();
+        }
     }
     
     return (
@@ -255,7 +298,7 @@ function SOCCalculator() {
             <CardHeader>
                 <CardTitle>Soil Organic Carbon (SOC) Sequestration</CardTitle>
             </CardHeader>
-             <form onSubmit={handleSubmit}>
+             <form onSubmit={handleSubmit} ref={formRef}>
                 <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div className="grid gap-2"><Label htmlFor="socInit">Initial SOC (%)</Label><Input name="socInit" id="socInit" type="number" step="any" /></div>
@@ -349,3 +392,5 @@ export default function InterventionsPage() {
     </>
   )
 }
+
+    
