@@ -18,29 +18,6 @@ export default function ImpactCalculatorPage() {
         setReport(prev => [...prev, line])
     }
 
-    const generateReport = () => {
-        if (reportRef.current) {
-            const sdgList = [
-                "SDG 7: Affordable and Clean Energy",
-                "SDG 13: Climate Action",
-                "SDG 15: Life on Land",
-            ].join("\n");
-            const fullReport = `CarbonCoin Impact Report\n=========================\n\nAligned SDGs:\n${sdgList}\n\nCalculations:\n----------------\n${report.join("\n")}`
-            reportRef.current.textContent = fullReport;
-        }
-    }
-
-    const downloadPDF = () => {
-        if (reportRef.current) {
-            const doc = new jsPDF()
-            doc.setFont("helvetica", "bold")
-            doc.text("CarbonCoin Impact Report", 10, 10)
-            doc.setFont("helvetica", "normal")
-            doc.text(reportRef.current.textContent || "", 10, 20)
-            doc.save("CarbonCoin_Report.pdf")
-        }
-    }
-
   return (
     <>
       <PageHeader
@@ -48,57 +25,12 @@ export default function ImpactCalculatorPage() {
         description="Calculate the impact of your agricultural and tech interventions."
       />
       <div className="space-y-8">
-        <SolarEnergyCalculator addToReport={addToReport} />
         <SOCCalculator addToReport={addToReport} />
         <DripIrrigationCalculator addToReport={addToReport} />
         <AgriPVCalculator addToReport={addToReport} />
-        <EVCalculator addToReport={addToReport} />
-
-        <Card>
-            <CardHeader>
-                <CardTitle className="font-headline">Final Report</CardTitle>
-                <CardDescription>Generate and download a summary of all calculations.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="flex gap-4">
-                    <Button onClick={generateReport}>Generate Report</Button>
-                    <Button onClick={downloadPDF} variant="outline">Download as PDF</Button>
-                </div>
-                <pre ref={reportRef} className="mt-4 p-4 border rounded-md bg-muted/50 whitespace-pre-wrap"></pre>
-            </CardContent>
-        </Card>
       </div>
     </>
   )
-}
-
-function SolarEnergyCalculator({ addToReport }: { addToReport: (s: string) => void }) {
-    const [result, setResult] = React.useState<string | null>(null)
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault()
-        const formData = new FormData(e.currentTarget)
-        const solarMW = parseFloat(formData.get("solarMW") as string) || 0
-        const solarMWh = parseFloat(formData.get("solarMWh") as string) || 0
-        const total = solarMW * solarMWh * 0.82
-        const resultString = `Solar: ${total.toFixed(2)} tCO₂e/year saved`
-        setResult(resultString)
-        addToReport(resultString)
-    }
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle>1. Solar Energy Savings</CardTitle>
-            </CardHeader>
-            <form onSubmit={handleSubmit}>
-                <CardContent className="space-y-4">
-                    <div className="grid gap-2"><Label htmlFor="solarMW">Installed Capacity (MW)</Label><Input name="solarMW" id="solarMW" type="number" step="any" /></div>
-                    <div className="grid gap-2"><Label htmlFor="solarMWh">Annual Generation per MW (MWh)</Label><Input name="solarMWh" id="solarMWh" type="number" step="any" /></div>
-                    <Button type="submit">Calculate Solar</Button>
-                    {result && <p className="font-bold mt-2">{result}</p>}
-                </CardContent>
-            </form>
-        </Card>
-    )
 }
 
 function SOCCalculator({ addToReport }: { addToReport: (s: string) => void }) {
@@ -125,7 +57,7 @@ function SOCCalculator({ addToReport }: { addToReport: (s: string) => void }) {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>2. Soil Organic Carbon Sequestration</CardTitle>
+                <CardTitle>1. Soil Organic Carbon Sequestration</CardTitle>
             </CardHeader>
              <form onSubmit={handleSubmit}>
                 <CardContent className="space-y-4">
@@ -160,7 +92,7 @@ function DripIrrigationCalculator({ addToReport }: { addToReport: (s: string) =>
     return (
         <Card>
             <CardHeader>
-                <CardTitle>3. Drip Irrigation Savings</CardTitle>
+                <CardTitle>2. Drip Irrigation Savings</CardTitle>
             </CardHeader>
             <form onSubmit={handleSubmit}>
                 <CardContent className="space-y-4">
@@ -199,7 +131,7 @@ function AgriPVCalculator({ addToReport }: { addToReport: (s: string) => void })
     return (
         <Card>
             <CardHeader>
-                <CardTitle>4. Agri-PV Savings</CardTitle>
+                <CardTitle>3. Agri-PV Savings</CardTitle>
             </CardHeader>
              <form onSubmit={handleSubmit}>
                 <CardContent className="space-y-4">
@@ -212,44 +144,3 @@ function AgriPVCalculator({ addToReport }: { addToReport: (s: string) => void })
         </Card>
     )
 }
-
-function EVCalculator({ addToReport }: { addToReport: (s: string) => void }) {
-    const [result, setResult] = React.useState<string | null>(null)
-     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault()
-        const formData = new FormData(e.currentTarget)
-        const evKm = parseFloat(formData.get("evKm") as string) || 0
-        const evEfficiency = parseFloat(formData.get("evEfficiency") as string) || 0
-        const gridEF = parseFloat(formData.get("gridEF") as string) || 0
-        const iceEF = parseFloat(formData.get("iceEF") as string) || 0
-        
-        const evCO2e = evKm * evEfficiency * gridEF
-        const iceCO2e = evKm * (iceEF / 1000000)
-        const savings = iceCO2e - evCO2e
-        
-        const resultString = `EV vs ICE: ${savings.toFixed(2)} tCO₂e/year saved`
-        setResult(resultString)
-        addToReport(resultString)
-    }
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle>5. EV vs ICE Comparison</CardTitle>
-            </CardHeader>
-            <form onSubmit={handleSubmit}>
-                <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="grid gap-2"><Label htmlFor="evKm">Annual Distance (km)</Label><Input name="evKm" id="evKm" type="number" step="any" /></div>
-                        <div className="grid gap-2"><Label htmlFor="evEfficiency">EV Efficiency (kWh/km)</Label><Input name="evEfficiency" id="evEfficiency" type="number" step="any" /></div>
-                        <div className="grid gap-2"><Label htmlFor="gridEF">Grid Emission Factor (tCO₂/MWh)</Label><Input name="gridEF" id="gridEF" type="number" step="any" /></div>
-                        <div className="grid gap-2"><Label htmlFor="iceEF">ICE Emission Factor (gCO₂/km)</Label><Input name="iceEF" id="iceEF" type="number" step="any" /></div>
-                    </div>
-                    <Button type="submit">Calculate EV Savings</Button>
-                    {result && <p className="font-bold mt-2">{result}</p>}
-                </CardContent>
-            </form>
-        </Card>
-    )
-}
-
-    
