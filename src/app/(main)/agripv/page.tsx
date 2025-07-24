@@ -52,8 +52,10 @@ function SolarCarbonCalculator() {
 
         try {
             let path;
-            if (user) {
+            if (user?.uid) {
                 path = `users/${user.uid}/calculations/solarCarbon`
+            } else if (uid) {
+                 path = `users/${uid}/calculations/solarCarbon`
             } else if (anonId) {
                 path = `anonymousUsers/${anonId}/calculations/solarCarbon`
             } else {
@@ -139,7 +141,7 @@ function DripIrrigationCalculator() {
         const uid = searchParams.get('uid')
         const anonId = searchParams.get('anonId')
 
-         if (!user && !anonId) {
+         if (!user && !uid && !anonId) {
             toast({ title: "Not Logged In", description: "You need to be logged in to save calculations.", variant: "destructive" });
             router.push('/login');
             return;
@@ -155,8 +157,10 @@ function DripIrrigationCalculator() {
 
         try {
             let path;
-            if (user) {
+            if (user?.uid) {
                 path = `users/${user.uid}/calculations/dripIrrigation`;
+            } else if (uid) {
+                path = `users/${uid}/calculations/dripIrrigation`;
             } else if (anonId) {
                 path = `anonymousUsers/${anonId}/calculations/dripIrrigation`;
             } else {
@@ -213,19 +217,23 @@ function AgriPVPageContent() {
   const initialStep = parseInt(searchParams.get('step') || '1', 10);
   const [step, setStep] = React.useState(initialStep);
 
-  const handleNext = () => {
+  const getQueryString = () => {
     const uid = searchParams.get('uid');
     const anonId = searchParams.get('anonId');
     let queryString = '';
 
-    if (user && user.uid) {
+    if (user?.uid) {
         queryString = `?uid=${user.uid}`;
     } else if (uid) {
         queryString = `?uid=${uid}`;
     } else if (anonId) {
         queryString = `?anonId=${anonId}`;
     }
+    return queryString;
+  }
 
+  const handleNext = () => {
+    const queryString = getQueryString();
 
     if (step === 1) {
       setStep(2);

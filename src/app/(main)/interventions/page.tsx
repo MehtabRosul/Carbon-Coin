@@ -198,7 +198,7 @@ function SOCCalculator() {
         const uid = searchParams.get('uid');
         const anonId = searchParams.get('anonId');
 
-        if (!user && !anonId) {
+        if (!user && !uid && !anonId) {
             toast({ title: "Not Logged In", description: "You need to be logged in to save calculations.", variant: "destructive" });
             router.push('/login');
             return;
@@ -222,8 +222,10 @@ function SOCCalculator() {
 
          try {
             let path;
-            if(user) {
+            if(user?.uid) {
                 path = `users/${user.uid}/calculations/socSequestration`;
+            } else if (uid) {
+                path = `users/${uid}/calculations/socSequestration`;
             } else if (anonId) {
                 path = `anonymousUsers/${anonId}/calculations/socSequestration`;
             } else {
@@ -288,6 +290,21 @@ export default function InterventionsPage() {
   const searchParams = useSearchParams();
   const { user } = useAuth();
 
+  const getQueryString = () => {
+    const uid = searchParams.get('uid');
+    const anonId = searchParams.get('anonId');
+    let queryString = '';
+
+    if (user?.uid) {
+        queryString = `?uid=${user.uid}`;
+    } else if (uid) {
+        queryString = `?uid=${uid}`;
+    } else if (anonId) {
+        queryString = `?anonId=${anonId}`;
+    }
+    return queryString;
+  }
+
   const handleNext = () => {
     if (step < 2) {
       setStep(s => s + 1);
@@ -295,17 +312,7 @@ export default function InterventionsPage() {
   };
 
   const handlePrevious = () => {
-     const uid = searchParams.get('uid');
-    const anonId = searchParams.get('anonId');
-    let queryString = '';
-
-    if (user && user.uid) {
-        queryString = `?uid=${user.uid}`;
-    } else if (uid) {
-        queryString = `?uid=${uid}`;
-    } else if (anonId) {
-        queryString = `?anonId=${anonId}`;
-    }
+    const queryString = getQueryString();
     
     if (step > 1) {
       setStep(s => s - 1);
