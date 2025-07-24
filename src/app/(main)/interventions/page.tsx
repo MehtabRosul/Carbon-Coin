@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/use-auth"
 import { db } from "@/lib/firebase"
-import { ref, set, onValue } from "firebase/database"
+import { ref, set, onValue, remove } from "firebase/database"
 import { useRouter, useSearchParams } from "next/navigation"
 import { X } from "lucide-react"
 
@@ -68,9 +68,20 @@ function AgriCarbonCalculator() {
     return () => unsubscribe();
   }, [getDbPath]);
   
-  const handleDeletePlot = (plotId: string) => {
-    setPlots(prevPlots => prevPlots.filter(plot => plot.id !== plotId));
-    toast({ title: "Plot Removed", description: "The plot has been removed from the view." });
+  const handleDeletePlot = async (plotId: string) => {
+    const dbPath = getDbPath();
+    if (!dbPath) {
+        toast({ title: "Error", description: "Could not identify user session.", variant: "destructive" });
+        return;
+    }
+    try {
+        const plotRef = ref(db, `${dbPath}/${plotId}`);
+        await remove(plotRef);
+        toast({ title: "Plot Removed", description: "The plot has been removed from the database." });
+    } catch (error) {
+        console.error("Firebase error:", error);
+        toast({ title: "Delete Failed", description: "Could not remove plot data.", variant: "destructive" });
+    }
   };
 
 
