@@ -30,9 +30,9 @@ export default function OnboardingPage() {
                 <LayoutDashboard className="h-10 w-10 text-primary" />
               </div>
               <CardHeader className="p-0">
-                <CardTitle className="font-headline">Carbon Credit Dashboard</CardTitle>
+                <CardTitle className="font-headline">Run AgriPV Calculator</CardTitle>
                 <CardDescription className="mt-2">
-                  Visualize your carbon savings and impact data.
+                  Calculate the CO₂e savings from your Agri-PV projects.
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -45,9 +45,9 @@ export default function OnboardingPage() {
                 <Calculator className="h-10 w-10 text-primary" />
               </div>
               <CardHeader className="p-0">
-                <CardTitle className="font-headline">CarbonCoin Impact Calculator</CardTitle>
+                <CardTitle className="font-headline">Run SOC Calculator</CardTitle>
                 <CardDescription className="mt-2">
-                  Calculate the impact of your agricultural and tech interventions.
+                  Calculate the Soil Organic Carbon sequestration in your fields.
                 </CardDescription>
               </CardHeader>
             </Card>
