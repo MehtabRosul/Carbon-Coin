@@ -12,8 +12,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/use-auth"
 import { db } from "@/lib/firebase"
-import { ref, push, set, onValue } from "firebase/database"
+import { ref, push, set, onValue, remove } from "firebase/database"
 import { useRouter, useSearchParams } from "next/navigation"
+import { X } from "lucide-react"
 
 
 interface AgriCarbonPlot {
@@ -66,6 +67,24 @@ function AgriCarbonCalculator() {
 
     return () => unsubscribe();
   }, [getDbPath]);
+  
+  const handleDeletePlot = async (plotId: string) => {
+    const dbPath = getDbPath();
+    if (!dbPath) {
+        toast({ title: "Error", description: "Could not identify user session.", variant: "destructive" });
+        return;
+    }
+
+    try {
+        const plotRef = ref(db, `${dbPath}/${plotId}`);
+        await remove(plotRef);
+        toast({ title: "Plot Removed", description: "The plot has been successfully removed." });
+    } catch (error) {
+        console.error("Firebase error:", error);
+        toast({ title: "Deletion Failed", description: "Could not remove the plot. Please try again.", variant: "destructive" });
+    }
+  };
+
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -175,13 +194,19 @@ function AgriCarbonCalculator() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Plot</TableHead><TableHead>Land Use</TableHead><TableHead>Climate</TableHead><TableHead>Soil</TableHead><TableHead>SOC Δ</TableHead><TableHead>Rate</TableHead><TableHead>Total SOC</TableHead><TableHead>CO₂e</TableHead>
+                  <TableHead>Plot</TableHead><TableHead>Land Use</TableHead><TableHead>Climate</TableHead><TableHead>Soil</TableHead><TableHead>SOC Δ</TableHead><TableHead>Rate</TableHead><TableHead>Total SOC</TableHead><TableHead>CO₂e</TableHead><TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {plots.map((plot) => (
                   <TableRow key={plot.id}>
                     <TableCell>{plot.plotId}</TableCell><TableCell>{plot.landUse}</TableCell><TableCell>{plot.climateZone}</TableCell><TableCell>{plot.soilType}</TableCell><TableCell>{plot.deltaSOC.toFixed(2)}</TableCell><TableCell>{plot.rate.toFixed(2)}</TableCell><TableCell>{plot.totalSOC.toFixed(2)}</TableCell><TableCell>{plot.co2e.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" onClick={() => handleDeletePlot(plot.id)}>
+                            <X className="h-4 w-4" />
+                            <span className="sr-only">Delete</span>
+                        </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -363,7 +388,7 @@ export default function InterventionsPage() {
     if (step > 1) {
       setStep(s => s - 1);
     } else {
-       const separator = queryString.startsWith('?') ? '&' : '?';
+       const separator = queryString.includes('?') ? '&' : '?';
        router.push(`/agripv${queryString}${separator}step=2`);
     }
   };
