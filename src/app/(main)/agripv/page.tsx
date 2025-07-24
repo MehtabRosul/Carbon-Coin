@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/use-auth"
 import { db } from "@/lib/firebase"
 import { ref, set } from "firebase/database"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 
 function SolarCarbonCalculator() {
     const { toast } = useToast()
@@ -177,8 +177,25 @@ function DripIrrigationCalculator() {
     )
 }
 
-export default function AgriPVPage() {
-  const [step, setStep] = React.useState(1);
+function AgriPVPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialStep = parseInt(searchParams.get('step') || '1', 10);
+  const [step, setStep] = React.useState(initialStep);
+
+  const handleNext = () => {
+    if (step === 1) {
+      setStep(2);
+    } else if (step === 2) {
+      router.push('/interventions');
+    }
+  };
+
+  const handlePrevious = () => {
+    if (step > 1) {
+      setStep(s => s - 1);
+    }
+  };
 
   return (
     <>
@@ -192,14 +209,23 @@ export default function AgriPVPage() {
         {step === 2 && <DripIrrigationCalculator />}
 
         <div className="flex justify-between mt-8">
-            <Button onClick={() => setStep(s => s - 1)} disabled={step === 1}>
+            <Button onClick={handlePrevious} disabled={step === 1}>
                 Previous
             </Button>
-            <Button onClick={() => setStep(s => s + 1)} disabled={step === 2}>
+            <Button onClick={handleNext}>
                 Next
             </Button>
         </div>
       </div>
     </>
+  );
+}
+
+
+export default function AgriPVPage() {
+  return (
+    <React.Suspense fallback={<div>Loading...</div>}>
+      <AgriPVPageContent />
+    </React.Suspense>
   )
 }

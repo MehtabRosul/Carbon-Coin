@@ -256,6 +256,22 @@ function SOCCalculator() {
 
 export default function InterventionsPage() {
   const [step, setStep] = React.useState(1);
+  const router = useRouter();
+
+  const handleNext = () => {
+    if (step < 2) {
+      setStep(s => s + 1);
+    }
+  };
+
+  const handlePrevious = () => {
+    if (step > 1) {
+      setStep(s => s - 1);
+    } else {
+      router.push('/agripv?step=2');
+    }
+  };
+
 
   return (
     <>
@@ -269,10 +285,10 @@ export default function InterventionsPage() {
         {step === 2 && <AgriCarbonCalculator />}
 
          <div className="flex justify-between mt-8">
-            <Button onClick={() => setStep(s => s - 1)} disabled={step === 1}>
+            <Button onClick={handlePrevious}>
                 Previous
             </Button>
-            <Button onClick={() => setStep(s => s + 1)} disabled={step === 2}>
+            <Button onClick={handleNext} disabled={step === 2}>
                 Next
             </Button>
         </div>
