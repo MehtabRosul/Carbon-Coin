@@ -36,8 +36,8 @@ function SolarCarbonCalculator() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>SolarCarbon (Intervention-Based)</CardTitle>
-                <CardDescription>Calculate CO₂e savings from various technological interventions.</CardDescription>
+                <CardTitle>SolarCarbon Calculator</CardTitle>
+                <CardDescription>Calculate CO₂e savings from various interventions.</CardDescription>
             </CardHeader>
             <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -121,12 +121,12 @@ function DripIrrigationCalculator() {
     )
 }
 
-export default function TechInterventionsPage() {
+export default function DashboardPage() {
   return (
     <>
       <PageHeader
-        title="Tech Interventions"
-        description="Quantify your carbon savings from technology adoption."
+        title="Agri-PV & Irrigation Savings"
+        description="Quantify your carbon savings from solar and water management."
       />
 
       <div className="grid gap-8">
