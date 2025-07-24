@@ -363,7 +363,7 @@ export default function InterventionsPage() {
     if (step > 1) {
       setStep(s => s - 1);
     } else {
-       const separator = queryString ? '&' : '?';
+       const separator = queryString.startsWith('?') ? '&' : '?';
        router.push(`/agripv${queryString}${separator}step=2`);
     }
   };
@@ -382,7 +382,7 @@ export default function InterventionsPage() {
 
          <div className="flex justify-between mt-8">
             <Button onClick={handlePrevious}>
-                Previous
+                {step === 1 ? 'Move to AgriPV' : 'Previous'}
             </Button>
             <Button onClick={handleNext} disabled={step === 2}>
                 Next
@@ -392,5 +392,3 @@ export default function InterventionsPage() {
     </>
   )
 }
-
-    
