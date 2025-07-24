@@ -26,7 +26,7 @@ function SolarCarbonCalculator() {
         const uid = searchParams.get('uid')
         const anonId = searchParams.get('anonId')
 
-        if (!user && !anonId) {
+        if (!user && !uid && !anonId) {
             toast({ title: "Not Logged In", description: "You need to be logged in to save calculations.", variant: "destructive" });
             router.push('/login');
             return;
