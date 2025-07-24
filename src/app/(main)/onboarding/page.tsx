@@ -21,7 +21,7 @@ export default function OnboardingPage() {
         </div>
 
         <div className="grid md:grid-cols-2 gap-8">
-           <Link href="/dashboard" className="flex">
+           <Link href="/agripv" className="flex">
             <Card className="flex flex-col w-full hover:bg-accent/50 hover:shadow-lg transition-all cursor-pointer">
               <CardHeader className="items-center text-center p-8 flex-grow">
                  <div className="p-4 bg-primary/10 rounded-full mb-4">

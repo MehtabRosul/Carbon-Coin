@@ -121,7 +121,7 @@ function DripIrrigationCalculator() {
     )
 }
 
-export default function DashboardPage() {
+export default function AgriPVPage() {
   return (
     <>
       <PageHeader
