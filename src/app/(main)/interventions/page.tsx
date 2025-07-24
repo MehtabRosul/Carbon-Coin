@@ -173,9 +173,19 @@ function AgriCarbonCalculator() {
 
 
 function SOCCalculator() {
+    const { toast } = useToast()
+    const { user } = useAuth()
+    const router = useRouter()
     const [result, setResult] = React.useState<string | null>(null)
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
+        if (!user) {
+            toast({ title: "Not Logged In", description: "You need to be logged in to save calculations.", variant: "destructive" });
+            router.push('/login');
+            return;
+        }
+
         const formData = new FormData(e.currentTarget)
         const socInit = (parseFloat(formData.get("socInit") as string) || 0) / 100
         const socFinal = (parseFloat(formData.get("socFinal") as string) || 0) / 100
@@ -191,7 +201,22 @@ function SOCCalculator() {
         
         const resultString = `${co2e.toFixed(2)} tCO₂e sequestered (Soil Type adjusted)`
         setResult(resultString)
+
+         try {
+            const calcRef = ref(db, `users/${user.uid}/calculations/socSequestration`);
+            const dataToSave = { socInit: socInit*100, socFinal: socFinal*100, bd, depth, areaSOC, soilFactor, co2e };
+            await set(calcRef, dataToSave);
+            toast({ title: "Calculation Saved", description: "Your SOC Sequestration results have been saved." });
+        } catch (error) {
+            console.error("Firebase error:", error);
+            toast({ title: "Save Failed", description: "Could not save calculation data.", variant: "destructive" });
+        }
     }
+
+     const handleClear = () => {
+        setResult(null);
+    }
+    
     return (
         <Card>
             <CardHeader>
@@ -217,7 +242,10 @@ function SOCCalculator() {
                           </Select>
                         </div>
                     </div>
-                    <Button type="submit">Calculate SOC</Button>
+                    <div className="flex gap-4">
+                        <Button type="submit">Calculate SOC</Button>
+                        {result && <Button variant="outline" onClick={handleClear}>Clear</Button>}
+                    </div>
                     {result && <p className="font-bold mt-4">{result}</p>}
                 </CardContent>
             </form>
@@ -227,6 +255,8 @@ function SOCCalculator() {
 
 
 export default function InterventionsPage() {
+  const [step, setStep] = React.useState(1);
+
   return (
     <>
       <PageHeader
@@ -234,12 +264,19 @@ export default function InterventionsPage() {
         description="Quantify your soil carbon savings from agricultural practices."
       />
 
-      <div className="grid gap-8">
-        <SOCCalculator />
-        <AgriCarbonCalculator />
+      <div className="space-y-8">
+        {step === 1 && <SOCCalculator />}
+        {step === 2 && <AgriCarbonCalculator />}
+
+         <div className="flex justify-between mt-8">
+            <Button onClick={() => setStep(s => s - 1)} disabled={step === 1}>
+                Previous
+            </Button>
+            <Button onClick={() => setStep(s => s + 1)} disabled={step === 2}>
+                Next
+            </Button>
+        </div>
       </div>
     </>
   )
 }
-
-    

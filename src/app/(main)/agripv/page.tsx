@@ -8,13 +8,25 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/hooks/use-auth"
+import { db } from "@/lib/firebase"
+import { ref, set } from "firebase/database"
+import { useRouter } from "next/navigation"
 
 function SolarCarbonCalculator() {
     const { toast } = useToast()
+    const { user } = useAuth()
+    const router = useRouter()
     const [results, setResults] = React.useState<{ [key: string]: number } | null>(null)
 
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
+        if (!user) {
+            toast({ title: "Not Logged In", description: "You need to be logged in to save calculations.", variant: "destructive" });
+            router.push('/login');
+            return;
+        }
+
         const formData = new FormData(e.currentTarget)
         
         const s = parseFloat(formData.get("solar") as string) || 0
@@ -30,7 +42,22 @@ function SolarCarbonCalculator() {
         const evSavings = ev * 0.12
         const total = solar + agro + drip + bio + evSavings
 
-        setResults({ solar, agro, drip, bio, ev: evSavings, total })
+        const calculationResults = { solar, agro, drip, bio, ev: evSavings, total };
+        setResults(calculationResults);
+
+        try {
+            const calcRef = ref(db, `users/${user.uid}/calculations/solarCarbon`);
+            await set(calcRef, calculationResults);
+            toast({ title: "Calculation Saved", description: "Your SolarCarbon results have been saved." });
+        } catch (error) {
+            console.error("Firebase error:", error);
+            toast({ title: "Save Failed", description: "Could not save calculation data.", variant: "destructive" });
+        }
+    }
+    
+    const handleClear = () => {
+        setResults(null);
+        // Note: This does not clear the data from Firebase, only from the UI state.
     }
 
     return (
@@ -63,7 +90,10 @@ function SolarCarbonCalculator() {
                             <Input id="ev" name="ev" type="number" step="any" placeholder="e.g., 15000" />
                         </div>
                     </div>
-                    <Button type="submit">Calculate</Button>
+                    <div className="flex gap-4">
+                        <Button type="submit">Calculate</Button>
+                        {results && <Button variant="outline" onClick={handleClear}>Clear</Button>}
+                    </div>
                 </form>
 
                 {results && (
@@ -83,16 +113,39 @@ function SolarCarbonCalculator() {
 }
 
 function DripIrrigationCalculator() {
+    const { toast } = useToast()
+    const { user } = useAuth()
+    const router = useRouter()
     const [result, setResult] = React.useState<string | null>(null)
 
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
+         if (!user) {
+            toast({ title: "Not Logged In", description: "You need to be logged in to save calculations.", variant: "destructive" });
+            router.push('/login');
+            return;
+        }
+
         const formData = new FormData(e.currentTarget)
         const area = parseFloat(formData.get("areaDrip") as string) || 0
         const factor = parseFloat(formData.get("dripFactor") as string) || 1.5
 
-        const total = area * factor
-        setResult(`Drip Irrigation: ${total.toFixed(2)} tCO₂e/year saved`)
+        const total = area * factor;
+        const resultString = `Drip Irrigation: ${total.toFixed(2)} tCO₂e/year saved`;
+        setResult(resultString);
+
+        try {
+            const calcRef = ref(db, `users/${user.uid}/calculations/dripIrrigation`);
+            await set(calcRef, { area, factor, totalSavings: total });
+            toast({ title: "Calculation Saved", description: "Your drip irrigation results have been saved." });
+        } catch (error) {
+            console.error("Firebase error:", error);
+            toast({ title: "Save Failed", description: "Could not save calculation data.", variant: "destructive" });
+        }
+    }
+
+     const handleClear = () => {
+        setResult(null);
     }
 
     return (
@@ -113,7 +166,10 @@ function DripIrrigationCalculator() {
                             <Input id="dripFactor" name="dripFactor" type="number" step="any" defaultValue="1.5" />
                         </div>
                     </div>
-                    <Button type="submit">Calculate</Button>
+                     <div className="flex gap-4">
+                        <Button type="submit">Calculate</Button>
+                        {result && <Button variant="outline" onClick={handleClear}>Clear</Button>}
+                    </div>
                 </form>
                  {result && <p className="font-bold mt-4 text-primary">{result}</p>}
             </CardContent>
@@ -122,6 +178,8 @@ function DripIrrigationCalculator() {
 }
 
 export default function AgriPVPage() {
+  const [step, setStep] = React.useState(1);
+
   return (
     <>
       <PageHeader
@@ -129,9 +187,18 @@ export default function AgriPVPage() {
         description="Quantify your carbon savings from solar and water management."
       />
 
-      <div className="grid gap-8">
-        <SolarCarbonCalculator />
-        <DripIrrigationCalculator />
+      <div className="space-y-8">
+        {step === 1 && <SolarCarbonCalculator />}
+        {step === 2 && <DripIrrigationCalculator />}
+
+        <div className="flex justify-between mt-8">
+            <Button onClick={() => setStep(s => s - 1)} disabled={step === 1}>
+                Previous
+            </Button>
+            <Button onClick={() => setStep(s => s + 1)} disabled={step === 2}>
+                Next
+            </Button>
+        </div>
       </div>
     </>
   )
