@@ -10,9 +10,15 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/hooks/use-auth"
+import { db } from "@/lib/firebase"
+import { ref, push, set, onValue } from "firebase/database"
+import { useRouter } from "next/navigation"
+
 
 interface AgriCarbonPlot {
   id: string;
+  plotId: string;
   landUse: string;
   climateZone: string;
   soilType: string;
@@ -24,13 +30,41 @@ interface AgriCarbonPlot {
 
 
 function AgriCarbonCalculator() {
-  const [plots, setPlots] = React.useState<AgriCarbonPlot[]>([]);
+  const { user } = useAuth();
+  const router = useRouter();
   const { toast } = useToast();
+  const [plots, setPlots] = React.useState<AgriCarbonPlot[]>([]);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  React.useEffect(() => {
+    if (!user) return;
+    const plotsRef = ref(db, `users/${user.uid}/agriCarbonPlots`);
+    const unsubscribe = onValue(plotsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const plotsList = Object.keys(data).map(key => ({
+          id: key,
+          ...data[key]
+        }));
+        setPlots(plotsList);
+      } else {
+        setPlots([]);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    if (!user) {
+      toast({ title: "Not Logged In", description: "You need to be logged in to add a plot.", variant: "destructive" });
+      router.push('/login');
+      return;
+    }
+
     const formData = new FormData(e.currentTarget);
-    const id = formData.get("plotID") as string;
+    const plotId = formData.get("plotID") as string;
     const landUse = formData.get("landUse") as string;
     const climateZone = formData.get("climateZone") as string;
     const soilType = formData.get("soilType") as string;
@@ -39,7 +73,7 @@ function AgriCarbonCalculator() {
     const timePeriod = parseFloat(formData.get("timePeriod") as string);
     const area = parseFloat(formData.get("area") as string);
 
-    if (!id || !landUse || !climateZone || !soilType || isNaN(initialSOC) || isNaN(finalSOC) || isNaN(timePeriod) || isNaN(area)) {
+    if (!plotId || !landUse || !climateZone || !soilType || isNaN(initialSOC) || isNaN(finalSOC) || isNaN(timePeriod) || isNaN(area)) {
       toast({ title: "Missing Fields", description: "Please fill all AgriCarbon fields.", variant: "destructive" });
       return;
     }
@@ -54,8 +88,8 @@ function AgriCarbonCalculator() {
     const total = delta * area;
     const co2 = total * 3.67;
 
-    const newPlot: AgriCarbonPlot = {
-      id,
+    const newPlotData = {
+      plotId,
       landUse,
       climateZone,
       soilType,
@@ -64,9 +98,17 @@ function AgriCarbonCalculator() {
       totalSOC: total,
       co2e: co2,
     };
-
-    setPlots([...plots, newPlot]);
-    (e.target as HTMLFormElement).reset();
+    
+    try {
+        const plotsRef = ref(db, `users/${user.uid}/agriCarbonPlots`);
+        const newPlotRef = push(plotsRef);
+        await set(newPlotRef, newPlotData);
+        toast({ title: "Plot Added", description: "Your plot data has been saved successfully." });
+        (e.target as HTMLFormElement).reset();
+    } catch (error) {
+        console.error("Firebase error:", error);
+        toast({ title: "Save Failed", description: "Could not save plot data. Please try again.", variant: "destructive" });
+    }
   };
 
   return (
@@ -105,12 +147,10 @@ function AgriCarbonCalculator() {
             <div className="grid gap-2"><Label htmlFor="timePeriod">Time Period (years)</Label><Input name="timePeriod" id="timePeriod" type="number" step="any" /></div>
             <div className="grid gap-2"><Label htmlFor="area">Area (ha)</Label><Input name="area" id="area" type="number" step="any" /></div>
           </div>
-          <Button type="submit">Add Plot</Button>
+          <Button type="submit" className="w-full">Add Plot</Button>
         </form>
 
-        {plots.length > 0 && (
-          <div className="mt-8">
-            <h4 className="font-bold mb-2">Plot Data</h4>
+        <div className="mt-8">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -118,15 +158,14 @@ function AgriCarbonCalculator() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {plots.map((plot, index) => (
-                  <TableRow key={index}>
-                    <TableCell>{plot.id}</TableCell><TableCell>{plot.landUse}</TableCell><TableCell>{plot.climateZone}</TableCell><TableCell>{plot.soilType}</TableCell><TableCell>{plot.deltaSOC.toFixed(2)}</TableCell><TableCell>{plot.rate.toFixed(2)}</TableCell><TableCell>{plot.totalSOC.toFixed(2)}</TableCell><TableCell>{plot.co2e.toFixed(2)}</TableCell>
+                {plots.map((plot) => (
+                  <TableRow key={plot.id}>
+                    <TableCell>{plot.plotId}</TableCell><TableCell>{plot.landUse}</TableCell><TableCell>{plot.climateZone}</TableCell><TableCell>{plot.soilType}</TableCell><TableCell>{plot.deltaSOC.toFixed(2)}</TableCell><TableCell>{plot.rate.toFixed(2)}</TableCell><TableCell>{plot.totalSOC.toFixed(2)}</TableCell><TableCell>{plot.co2e.toFixed(2)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </div>
-        )}
       </CardContent>
     </Card>
   );
@@ -156,7 +195,7 @@ function SOCCalculator() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>🌱 Soil Organic Carbon (SOC) Sequestration</CardTitle>
+                <CardTitle>Soil Organic Carbon (SOC) Sequestration</CardTitle>
             </CardHeader>
              <form onSubmit={handleSubmit}>
                 <CardContent className="space-y-4">
@@ -202,3 +241,5 @@ export default function InterventionsPage() {
     </>
   )
 }
+
+    
