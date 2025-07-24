@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/use-auth"
 import { db } from "@/lib/firebase"
 import { ref, push, set, onValue } from "firebase/database"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 
 
 interface AgriCarbonPlot {
@@ -32,12 +32,24 @@ interface AgriCarbonPlot {
 function AgriCarbonCalculator() {
   const { user } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const [plots, setPlots] = React.useState<AgriCarbonPlot[]>([]);
 
+  const getDbPath = React.useCallback(() => {
+    const uid = searchParams.get('uid');
+    const anonId = searchParams.get('anonId');
+    if (user?.uid) return `users/${user.uid}/agriCarbonPlots`;
+    if (uid) return `users/${uid}/agriCarbonPlots`;
+    if (anonId) return `anonymousUsers/${anonId}/agriCarbonPlots`;
+    return null;
+  }, [user, searchParams]);
+
   React.useEffect(() => {
-    if (!user) return;
-    const plotsRef = ref(db, `users/${user.uid}/agriCarbonPlots`);
+    const dbPath = getDbPath();
+    if (!dbPath) return;
+
+    const plotsRef = ref(db, dbPath);
     const unsubscribe = onValue(plotsRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
@@ -52,12 +64,13 @@ function AgriCarbonCalculator() {
     });
 
     return () => unsubscribe();
-  }, [user]);
+  }, [getDbPath]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const dbPath = getDbPath();
 
-    if (!user) {
+    if (!dbPath) {
       toast({ title: "Not Logged In", description: "You need to be logged in to add a plot.", variant: "destructive" });
       router.push('/login');
       return;
@@ -100,7 +113,7 @@ function AgriCarbonCalculator() {
     };
     
     try {
-        const plotsRef = ref(db, `users/${user.uid}/agriCarbonPlots`);
+        const plotsRef = ref(db, dbPath);
         const newPlotRef = push(plotsRef);
         await set(newPlotRef, newPlotData);
         toast({ title: "Plot Added", description: "Your plot data has been saved successfully." });
@@ -176,11 +189,16 @@ function SOCCalculator() {
     const { toast } = useToast()
     const { user } = useAuth()
     const router = useRouter()
+    const searchParams = useSearchParams()
     const [result, setResult] = React.useState<string | null>(null)
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
-        if (!user) {
+
+        const uid = searchParams.get('uid');
+        const anonId = searchParams.get('anonId');
+
+        if (!user && !anonId) {
             toast({ title: "Not Logged In", description: "You need to be logged in to save calculations.", variant: "destructive" });
             router.push('/login');
             return;
@@ -203,7 +221,17 @@ function SOCCalculator() {
         setResult(resultString)
 
          try {
-            const calcRef = ref(db, `users/${user.uid}/calculations/socSequestration`);
+            let path;
+            if(user) {
+                path = `users/${user.uid}/calculations/socSequestration`;
+            } else if (anonId) {
+                path = `anonymousUsers/${anonId}/calculations/socSequestration`;
+            } else {
+                 toast({ title: "Error", description: "Could not identify user session.", variant: "destructive" });
+                 return;
+            }
+            
+            const calcRef = ref(db, path);
             const dataToSave = { socInit: socInit*100, socFinal: socFinal*100, bd, depth, areaSOC, soilFactor, co2e };
             await set(calcRef, dataToSave);
             toast({ title: "Calculation Saved", description: "Your SOC Sequestration results have been saved." });
@@ -257,6 +285,8 @@ function SOCCalculator() {
 export default function InterventionsPage() {
   const [step, setStep] = React.useState(1);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { user } = useAuth();
 
   const handleNext = () => {
     if (step < 2) {
@@ -265,10 +295,22 @@ export default function InterventionsPage() {
   };
 
   const handlePrevious = () => {
+     const uid = searchParams.get('uid');
+    const anonId = searchParams.get('anonId');
+    let queryString = '';
+
+    if (user && user.uid) {
+        queryString = `?uid=${user.uid}`;
+    } else if (uid) {
+        queryString = `?uid=${uid}`;
+    } else if (anonId) {
+        queryString = `?anonId=${anonId}`;
+    }
+    
     if (step > 1) {
       setStep(s => s - 1);
     } else {
-      router.push('/agripv?step=2');
+      router.push(`/agripv${queryString}&step=2`);
     }
   };
 

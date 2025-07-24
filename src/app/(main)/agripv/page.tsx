@@ -17,11 +17,16 @@ function SolarCarbonCalculator() {
     const { toast } = useToast()
     const { user } = useAuth()
     const router = useRouter()
+    const searchParams = useSearchParams()
     const [results, setResults] = React.useState<{ [key: string]: number } | null>(null)
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
-        if (!user) {
+        
+        const uid = searchParams.get('uid')
+        const anonId = searchParams.get('anonId')
+
+        if (!user && !anonId) {
             toast({ title: "Not Logged In", description: "You need to be logged in to save calculations.", variant: "destructive" });
             router.push('/login');
             return;
@@ -46,7 +51,16 @@ function SolarCarbonCalculator() {
         setResults(calculationResults);
 
         try {
-            const calcRef = ref(db, `users/${user.uid}/calculations/solarCarbon`);
+            let path;
+            if (user) {
+                path = `users/${user.uid}/calculations/solarCarbon`
+            } else if (anonId) {
+                path = `anonymousUsers/${anonId}/calculations/solarCarbon`
+            } else {
+                 toast({ title: "Error", description: "Could not identify user session.", variant: "destructive" });
+                 return;
+            }
+            const calcRef = ref(db, path);
             await set(calcRef, calculationResults);
             toast({ title: "Calculation Saved", description: "Your SolarCarbon results have been saved." });
         } catch (error) {
@@ -116,11 +130,16 @@ function DripIrrigationCalculator() {
     const { toast } = useToast()
     const { user } = useAuth()
     const router = useRouter()
+    const searchParams = useSearchParams()
     const [result, setResult] = React.useState<string | null>(null)
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
-         if (!user) {
+        
+        const uid = searchParams.get('uid')
+        const anonId = searchParams.get('anonId')
+
+         if (!user && !anonId) {
             toast({ title: "Not Logged In", description: "You need to be logged in to save calculations.", variant: "destructive" });
             router.push('/login');
             return;
@@ -135,7 +154,16 @@ function DripIrrigationCalculator() {
         setResult(resultString);
 
         try {
-            const calcRef = ref(db, `users/${user.uid}/calculations/dripIrrigation`);
+            let path;
+            if (user) {
+                path = `users/${user.uid}/calculations/dripIrrigation`;
+            } else if (anonId) {
+                path = `anonymousUsers/${anonId}/calculations/dripIrrigation`;
+            } else {
+                toast({ title: "Error", description: "Could not identify user session.", variant: "destructive" });
+                return;
+            }
+            const calcRef = ref(db, path);
             await set(calcRef, { area, factor, totalSavings: total });
             toast({ title: "Calculation Saved", description: "Your drip irrigation results have been saved." });
         } catch (error) {
@@ -180,14 +208,29 @@ function DripIrrigationCalculator() {
 function AgriPVPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user } = useAuth();
+  
   const initialStep = parseInt(searchParams.get('step') || '1', 10);
   const [step, setStep] = React.useState(initialStep);
 
   const handleNext = () => {
+    const uid = searchParams.get('uid');
+    const anonId = searchParams.get('anonId');
+    let queryString = '';
+
+    if (user && user.uid) {
+        queryString = `?uid=${user.uid}`;
+    } else if (uid) {
+        queryString = `?uid=${uid}`;
+    } else if (anonId) {
+        queryString = `?anonId=${anonId}`;
+    }
+
+
     if (step === 1) {
       setStep(2);
     } else if (step === 2) {
-      router.push('/interventions');
+      router.push(`/interventions${queryString}`);
     }
   };
 

@@ -6,8 +6,28 @@ import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/ca
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { BarChart, Droplets } from "lucide-react"
+import { useAuth } from "@/hooks/use-auth"
+import { useSearchParams } from "next/navigation"
 
 export default function OnboardingPage() {
+  const { user } = useAuth();
+  const searchParams = useSearchParams();
+  
+  const getLinkWithParams = (basePath: string) => {
+    const uid = searchParams.get('uid');
+    const anonId = searchParams.get('anonId');
+    let queryString = '';
+
+    if (user && user.uid) {
+        queryString = `?uid=${user.uid}`;
+    } else if (uid) {
+        queryString = `?uid=${uid}`;
+    } else if (anonId) {
+        queryString = `?anonId=${anonId}`;
+    }
+    return `${basePath}${queryString}`;
+  }
+
   return (
     <div className="flex-grow flex flex-col items-center justify-center">
       <div className="w-full max-w-4xl">
@@ -21,7 +41,7 @@ export default function OnboardingPage() {
         </div>
 
         <div className="grid md:grid-cols-2 gap-8">
-           <Link href="/agripv" className="flex">
+           <Link href={getLinkWithParams("/agripv")} className="flex">
             <Card className="flex flex-col w-full hover:bg-accent/50 hover:shadow-lg transition-all cursor-pointer">
               <CardHeader className="items-center text-center p-8 flex-grow">
                  <div className="p-4 bg-primary/10 rounded-full mb-4">
@@ -34,7 +54,7 @@ export default function OnboardingPage() {
               </CardHeader>
             </Card>
           </Link>
-          <Link href="/interventions" className="flex">
+          <Link href={getLinkWithParams("/interventions")} className="flex">
             <Card className="flex flex-col w-full hover:bg-accent/50 hover:shadow-lg transition-all cursor-pointer">
               <CardHeader className="items-center text-center p-8 flex-grow">
                  <div className="p-4 bg-primary/10 rounded-full mb-4">
