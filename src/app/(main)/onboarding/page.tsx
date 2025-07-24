@@ -2,7 +2,7 @@
 "use client"
 
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { BarChart, Calculator, LayoutDashboard } from "lucide-react"
+import { Calculator, LayoutDashboard } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 export default function OnboardingPage() {
@@ -21,7 +21,7 @@ export default function OnboardingPage() {
               Select one of the modules below to begin your journey with Carbon Coin.
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl mx-auto">
             <Card
               className="flex flex-col items-center justify-center text-center p-8 hover:bg-accent/50 hover:shadow-lg transition-all cursor-pointer"
               onClick={() => handleCardClick("/dashboard")}
@@ -48,21 +48,6 @@ export default function OnboardingPage() {
                 <CardTitle className="font-headline">CarbonCoin Impact Calculator</CardTitle>
                 <CardDescription className="mt-2">
                   Calculate the impact of your agricultural and tech interventions.
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card
-              className="flex flex-col items-center justify-center text-center p-8 hover:bg-accent/50 hover:shadow-lg transition-all cursor-pointer"
-              onClick={() => handleCardClick("/agricarbon")}
-            >
-              <div className="p-4 bg-primary/10 rounded-full mb-4">
-                <BarChart className="h-10 w-10 text-primary" />
-              </div>
-              <CardHeader className="p-0">
-                <CardTitle className="font-headline">CarbonCoin Cockpit</CardTitle>
-                <CardDescription className="mt-2">
-                  Model your climate impact — from field to future.
                 </CardDescription>
               </CardHeader>
             </Card>
