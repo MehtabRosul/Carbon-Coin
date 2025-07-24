@@ -20,8 +20,21 @@ export default function OnboardingPage() {
           </p>
         </div>
 
-        <div className="flex justify-center">
-          <Link href="/interventions" className="flex w-full md:w-1/2">
+        <div className="grid md:grid-cols-2 gap-8">
+           <Link href="/dashboard" className="flex">
+            <Card className="flex flex-col w-full hover:bg-accent/50 hover:shadow-lg transition-all cursor-pointer">
+              <CardHeader className="items-center text-center p-8 flex-grow">
+                 <div className="p-4 bg-primary/10 rounded-full mb-4">
+                    <BarChart className="h-10 w-10 text-primary" />
+                 </div>
+                <CardTitle className="font-headline text-2xl">Run AgriPV Calculator</CardTitle>
+                <CardDescription>
+                  Model your carbon savings from AgriPV systems.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </Link>
+          <Link href="/interventions" className="flex">
             <Card className="flex flex-col w-full hover:bg-accent/50 hover:shadow-lg transition-all cursor-pointer">
               <CardHeader className="items-center text-center p-8 flex-grow">
                  <div className="p-4 bg-primary/10 rounded-full mb-4">
