@@ -11,7 +11,7 @@ export default function OnboardingPage() {
   return (
     <div className="flex-grow flex flex-col items-center justify-center">
       <div className="w-full max-w-4xl">
-        <div className="text-center mb-16">
+        <div className="text-center mb-20">
           <h1 className="text-4xl font-headline font-bold">
             Carbon Impact Calculators
           </h1>
@@ -49,7 +49,7 @@ export default function OnboardingPage() {
           </Link>
         </div>
 
-        <div className="text-center mt-20 max-w-3xl mx-auto">
+        <div className="text-center mt-24 max-w-3xl mx-auto">
           <h2 className="text-2xl font-headline font-bold">Ready to Make an Impact?</h2>
           <p className="text-muted-foreground mt-3">
              Use our powerful tools to quantify your sustainability efforts, gain valuable insights, and generate compelling reports. Whether you're tracking farm-level carbon sequestration or the benefits of new technology, Carbon Coin provides the clarity you need to showcase your positive environmental impact. Start by selecting a module above to log your first data points.
