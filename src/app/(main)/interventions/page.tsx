@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/use-auth"
 import { db } from "@/lib/firebase"
-import { ref, push, set, onValue } from "firebase/database"
+import { ref, set, onValue } from "firebase/database"
 import { useRouter, useSearchParams } from "next/navigation"
 import { X } from "lucide-react"
 
@@ -128,9 +128,8 @@ function AgriCarbonCalculator() {
     
     try {
         if (!dbPath) throw new Error("Database path not available");
-        const plotsRef = ref(db, dbPath);
-        const newPlotRef = push(plotsRef);
-        await set(newPlotRef, newPlotData);
+        const plotRef = ref(db, `${dbPath}/${plotId}`);
+        await set(plotRef, newPlotData);
         toast({ title: "Plot Added", description: "Your plot data has been saved successfully." });
         if (formRef.current) formRef.current.reset();
     } catch (error) {
