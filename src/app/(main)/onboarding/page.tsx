@@ -1,7 +1,7 @@
-
 "use client"
 
 import * as React from "react"
+import { Suspense } from "react"; // Import Suspense
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
@@ -9,7 +9,7 @@ import { BarChart, Droplets } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { useSearchParams } from "next/navigation"
 
-export default function OnboardingPage() {
+function OnboardingContent() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
   
@@ -78,4 +78,12 @@ export default function OnboardingPage() {
       </div>
     </div>
   )
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}> {/* Add a fallback UI */}
+      <OnboardingContent />
+    </Suspense>
+  );
 }
