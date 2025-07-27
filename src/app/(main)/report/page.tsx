@@ -16,6 +16,8 @@ import jsPDF from "jspdf"
 import { useToast } from "@/hooks/use-toast"
 import html2canvas from "html2canvas"
 
+import { Sdg1, Sdg2, Sdg3, Sdg4, Sdg5, Sdg6, Sdg7, Sdg8, Sdg9, Sdg10, Sdg11, Sdg12, Sdg13, Sdg14, Sdg15, Sdg16, Sdg17 } from "@/components/sdg-icons"
+
 interface UserData {
   name?: string;
   projectDetails?: {
@@ -180,6 +182,57 @@ function ReportPageContent() {
   if (hasSOC) interventions.push("SOC");
 
   const totalAgriCarbonCo2e = agriCarbonPlots ? Object.values(agriCarbonPlots).reduce((sum, plot) => sum + plot.co2e, 0) : 0;
+  
+  const getActiveSdgs = () => {
+    const active = new Set<number>();
+
+    // Rule 7: Always active in report
+    active.add(8);
+    active.add(12);
+    active.add(13);
+    active.add(17);
+
+    // Rule 1: Project registration
+    if (projectDetails?.projectName) {
+      active.add(9);
+      active.add(17);
+    }
+    
+    // Rule 6: Location details
+    if (projectDetails?.latitude && projectDetails?.longitude && projectDetails?.location) {
+      active.add(9);
+      active.add(16);
+    }
+    
+    // Rule 2: SOC calculation
+    if (calculations?.socSequestration?.co2e || totalAgriCarbonCo2e > 0) {
+        active.add(13);
+        active.add(15);
+    }
+    
+    // Rule 3: Drip irrigation
+    if (calculations?.dripIrrigation?.totalSavings) {
+        active.add(6);
+        active.add(12);
+    }
+    
+    // Rule 4: AgriPV (solar, agro, bio)
+    if (calculations?.solarCarbon?.results?.solar || calculations?.solarCarbon?.results?.agro || calculations?.solarCarbon?.results?.bio) {
+        active.add(7);
+        active.add(13);
+    }
+    
+    // Rule 5: EV calculation
+    if (calculations?.solarCarbon?.results?.ev) {
+        active.add(11);
+    }
+    
+    return active;
+  }
+  
+  const activeSdgs = getActiveSdgs();
+
+  const sdgComponents = [Sdg1, Sdg2, Sdg3, Sdg4, Sdg5, Sdg6, Sdg7, Sdg8, Sdg9, Sdg10, Sdg11, Sdg12, Sdg13, Sdg14, Sdg15, Sdg16, Sdg17];
 
 
   return (
@@ -206,7 +259,7 @@ function ReportPageContent() {
                   </p>
 
                   <div className="mt-8 grid grid-cols-2 gap-8">
-                      <Card className="col-span-1">
+                      <Card className="col-span-1 border">
                           <CardHeader>
                               <CardTitle className="font-headline">AgriPV & Irrigation</CardTitle>
                           </CardHeader>
@@ -222,7 +275,7 @@ function ReportPageContent() {
                           </CardContent>
                       </Card>
 
-                       <Card className="col-span-1">
+                       <Card className="col-span-1 border">
                           <CardHeader>
                               <CardTitle className="font-headline">Soil Organic Carbon</CardTitle>
                           </CardHeader>
@@ -241,6 +294,21 @@ function ReportPageContent() {
                           </CardContent>
                       </Card>
                   </div>
+                  
+                  <div className="mt-8 pt-4 border-t-2 border-muted">
+                    <h3 className="text-xl font-headline font-bold text-center mb-4">Sustainable Development Goals Impacted</h3>
+                    <div className="grid grid-cols-9 gap-2">
+                      {sdgComponents.map((SdgComponent, index) => {
+                          const sdgNumber = index + 1;
+                          const isActive = activeSdgs.has(sdgNumber);
+                          return (
+                              <div key={sdgNumber} className={`aspect-square ${isActive ? 'opacity-100' : 'opacity-20 grayscale'}`}>
+                                  <SdgComponent />
+                              </div>
+                          );
+                      })}
+                    </div>
+                  </div>
               </main>
           </div>
         </div>
@@ -256,5 +324,3 @@ export default function ReportPage() {
         </React.Suspense>
     )
 }
-
-    

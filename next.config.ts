@@ -1,3 +1,4 @@
+
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
@@ -17,6 +18,14 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
     ],
+  },
+   async rewrites() {
+    return [
+      {
+        source: '/sdgs/:path*',
+        destination: '/assets/icons/:path*',
+      },
+    ]
   },
 };
 

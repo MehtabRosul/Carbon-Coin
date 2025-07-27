@@ -1,0 +1,6 @@
+
+import * as React from 'react';
+
+export const Sdg17 = () => (
+  <img src="/sdgs/E-WEB-Goal-17.svg" alt="SDG 17: Partnerships for the Goals" />
+);
