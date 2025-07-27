@@ -1,6 +1,6 @@
-
 import * as React from 'react';
+import Image from 'next/image';
 
 export const Sdg17 = () => (
-  <img src="/E-WEB-Goal-17.jpg" alt="SDG 17: Partnerships to achieve the Goal" />
+  <Image src="/E-WEB-Goal-17.jpg" alt="" width={128} height={128} unoptimized />
 );
