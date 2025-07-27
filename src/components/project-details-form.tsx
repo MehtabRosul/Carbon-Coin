@@ -158,11 +158,14 @@ export default function ProjectDetailsForm() {
     }
 
     let dbRef;
+    let queryString = '';
 
     if (user && uid) {
         dbRef = ref(db, `users/${uid}`);
+        queryString = `?uid=${uid}`;
     } else if (anonId) {
         dbRef = ref(db, `anonymousUsers/${anonId}`);
+        queryString = `?anonId=${anonId}`;
     } else {
         if(!loading) {
             toast({
@@ -180,7 +183,7 @@ export default function ProjectDetailsForm() {
         title: "Project Details Saved!",
         description: "Your project information has been stored successfully.",
       })
-      router.push("/onboarding")
+      router.push(`/onboarding${queryString}`)
     } catch (error) {
       console.error("Firebase error:", error);
       toast({
@@ -266,3 +269,5 @@ export default function ProjectDetailsForm() {
     </div>
   );
 }
+
+    

@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -5,22 +6,26 @@ import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Download, FileText } from "lucide-react"
+import { Download, FileText, Eye } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/use-auth"
 import { db } from "@/lib/firebase"
-import { ref, push, set, onValue } from "firebase/database"
+import { ref, push, set, onValue, serverTimestamp } from "firebase/database"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
 
 interface Report {
   id: string;
   title: string;
   date: string;
   type: string;
+  userId: string;
 }
 
 export default function ReportsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const router = useRouter();
   const [reports, setReports] = React.useState<Report[]>([]);
 
   React.useEffect(() => {
@@ -51,43 +56,24 @@ export default function ReportsPage() {
       });
       return;
     }
+    
+    // Instead of creating a report here, we navigate to the start of the flow
+    router.push('/start');
 
-    const newReport: Omit<Report, 'id'> = {
-      title: `Monthly Summary - ${new Date().toLocaleString('default', { month: 'long' })} ${new Date().getFullYear()}`,
-      date: new Date().toISOString().split('T')[0],
-      type: "Monthly"
-    };
-
-    try {
-      const reportsRef = ref(db, `users/${user.uid}/reports`);
-      const newReportRef = push(reportsRef);
-      await set(newReportRef, newReport);
-      toast({
-        title: "Report Generated",
-        description: "A new report has been added to your list.",
-      });
-    } catch (error) {
-      console.error("Firebase error:", error);
-      toast({
-        title: "Generation Failed",
-        description: "Could not generate the report. Please try again.",
-        variant: "destructive",
-      });
-    }
   };
 
   return (
     <>
       <PageHeader
         title="Reports"
-        description="Generate and download reports of your carbon savings data."
+        description="View and download reports of your carbon savings data."
       >
-        <Button variant="outline" onClick={handleGenerateReport}>Generate New Report</Button>
+        <Button onClick={handleGenerateReport}>Start New Calculation</Button>
       </PageHeader>
 
       <Card>
         <CardHeader>
-          <CardTitle>Generated Reports</CardTitle>
+          <CardTitle>Saved Reports</CardTitle>
           <CardDescription>
             Here is a list of your previously generated reports.
           </CardDescription>
@@ -113,11 +99,13 @@ export default function ReportsPage() {
                       </div>
                     </TableCell>
                     <TableCell>{report.type}</TableCell>
-                    <TableCell>{report.date}</TableCell>
+                    <TableCell>{new Date(report.date).toLocaleDateString()}</TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon">
-                        <Download className="h-4 w-4" />
-                        <span className="sr-only">Download</span>
+                       <Button variant="ghost" size="icon" asChild>
+                          <Link href={`/report?uid=${report.userId}&reportId=${report.id}`}>
+                              <Eye className="h-4 w-4" />
+                              <span className="sr-only">View</span>
+                          </Link>
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -125,7 +113,7 @@ export default function ReportsPage() {
               ) : (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center">
-                    No reports generated yet.
+                    No reports generated yet. Start a calculation to create your first report.
                   </TableCell>
                 </TableRow>
               )}
@@ -136,3 +124,5 @@ export default function ReportsPage() {
     </>
   )
 }
+
+    

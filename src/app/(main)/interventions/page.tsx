@@ -2,6 +2,17 @@
 "use client"
 
 import * as React from "react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -390,6 +401,10 @@ function InterventionsPageContent() {
        router.push(`/agripv${queryString}${separator}step=2`);
     }
   };
+  
+  const handleGenerateReport = () => {
+    router.push(`/report${getQueryString()}`);
+  };
 
 
   return (
@@ -407,9 +422,27 @@ function InterventionsPageContent() {
             <Button onClick={handlePrevious}>
                 {step === 1 ? 'Move to AgriPV' : 'Previous'}
             </Button>
-            <Button onClick={handleNext} disabled={step === 2}>
-                Next
-            </Button>
+            {step < 2 ? (
+                <Button onClick={handleNext}>Next</Button>
+            ) : (
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button>Submit</Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                        <AlertDialogTitle>Generate Report?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This will compile all your entered data into a final report. You will be able to download it on the next page.
+                        </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleGenerateReport}>Generate Report</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            )}
         </div>
       </div>
     </>
@@ -423,3 +456,5 @@ export default function InterventionsPage() {
         </React.Suspense>
     )
 }
+
+    
