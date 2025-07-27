@@ -5,7 +5,7 @@ import { Suspense } from "react"; // Import Suspense
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { BarChart, Droplets } from "lucide-react"
+import { BarChart, Droplets, Calculator } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { useSearchParams } from "next/navigation"
 
@@ -40,7 +40,7 @@ function OnboardingContent() {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8">
+        <div className="grid md:grid-cols-2 gap-8 mb-8">
            <Link href={getLinkWithParams("/agripv")} className="flex">
             <Card className="flex flex-col w-full hover:bg-accent/50 hover:shadow-lg transition-all cursor-pointer">
               <CardHeader className="items-center text-center p-8 flex-grow">
@@ -63,6 +63,22 @@ function OnboardingContent() {
                 <CardTitle className="font-headline text-2xl">Run SOC Calculator</CardTitle>
                 <CardDescription>
                   Calculate the impact of your agricultural and tech interventions.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </Link>
+        </div>
+
+        <div className="flex justify-center">
+          <Link href={getLinkWithParams("/agripv-feasibility")} className="flex w-full max-w-md">
+            <Card className="flex flex-col w-full hover:bg-accent/50 hover:shadow-lg transition-all cursor-pointer">
+              <CardHeader className="items-center text-center p-8 flex-grow">
+                 <div className="p-4 bg-primary/10 rounded-full mb-4">
+                    <Calculator className="h-10 w-10 text-primary" />
+                 </div>
+                <CardTitle className="font-headline text-2xl">AgriPV Feasibility Calculator</CardTitle>
+                <CardDescription>
+                  Assess the feasibility of AgriPV implementation for your land.
                 </CardDescription>
               </CardHeader>
             </Card>
