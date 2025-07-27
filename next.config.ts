@@ -19,14 +19,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-   async rewrites() {
-    return [
-      {
-        source: '/sdgs/:path*',
-        destination: '/assets/icons/:path*',
-      },
-    ]
-  },
 };
 
 export default nextConfig;
