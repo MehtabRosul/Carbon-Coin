@@ -16,7 +16,7 @@ import jsPDF from "jspdf"
 import { useToast } from "@/hooks/use-toast"
 import html2canvas from "html2canvas"
 
-import { Sdg1, Sdg2, Sdg3, Sdg4, Sdg5, Sdg6, Sdg7, Sdg8, Sdg9, Sdg10, Sdg11, Sdg12, Sdg13, Sdg14, Sdg15, Sdg16, Sdg17 } from "@/components/sdg-icons"
+import { SDG_ICON_URLS, FALLBACK_URLS } from "@/components/sdg-icons"
 
 interface UserData {
   name?: string;
@@ -132,15 +132,54 @@ function ReportPageContent() {
         return;
     }
 
+    // Show loading state
+    toast({ title: "Generating PDF", description: "Please wait while we prepare your report..." });
+
     try {
-        const canvas = await html2canvas(reportElement, { scale: 2, useCORS: true });
-        const imgData = canvas.toDataURL('image/png');
+        // Pre-load all images before generating PDF
+        const images = reportElement.querySelectorAll('img');
+        await Promise.all(
+          Array.from(images).map(img => {
+            return new Promise((resolve) => {
+              if (img.complete) {
+                resolve(null);
+              } else {
+                img.onload = () => resolve(null);
+                img.onerror = () => resolve(null);
+              }
+            });
+          })
+        );
+
+        // Wait additional time for any remaining images
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        const canvas = await html2canvas(reportElement, { 
+            scale: 2, 
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#ffffff',
+            logging: false,
+            imageTimeout: 15000, // 15 seconds timeout for images
+            onclone: (clonedDoc) => {
+              // Ensure all images in the cloned document are loaded
+              const clonedImages = clonedDoc.querySelectorAll('img');
+              clonedImages.forEach(img => {
+                if (img.src.includes('via.placeholder.com')) {
+                  // Use fallback for placeholder images
+                  img.crossOrigin = 'anonymous';
+                }
+              });
+            }
+        });
+        
+        const imgData = canvas.toDataURL('image/png', 1.0);
         
         const pdf = new jsPDF({
             orientation: 'p',
             unit: 'mm',
             format: 'a4',
-            putOnlyUsedFonts:true,
+            putOnlyUsedFonts: true,
             floatPrecision: 16
         });
 
@@ -151,15 +190,29 @@ function ReportPageContent() {
         const canvasHeight = canvas.height;
         
         const ratio = canvasWidth / canvasHeight;
-        const widthInPdf = pdfWidth - 20; // with margin
+        const widthInPdf = pdfWidth - 20;
         const heightInPdf = widthInPdf / ratio;
 
         pdf.addImage(imgData, 'PNG', 10, 10, widthInPdf, heightInPdf);
-        pdf.save('CarbonCoin-Report.pdf');
+
+        // Generate filename with timestamp
+        const timestamp = new Date().toISOString().split('T')[0];
+        const filename = `CarbonCoin-Report-${timestamp}.pdf`;
+        
+        pdf.save(filename);
+        
+        toast({ 
+            title: "PDF Downloaded", 
+            description: `Your report has been saved as ${filename}` 
+        });
 
     } catch (error) {
         console.error("Error generating PDF:", error);
-        toast({ title: "Download Failed", description: "Could not generate PDF for download.", variant: "destructive" });
+        toast({ 
+            title: "Download Failed", 
+            description: "Could not generate PDF. Please try again or contact support.", 
+            variant: "destructive" 
+        });
     }
   };
 
@@ -232,9 +285,6 @@ function ReportPageContent() {
   
   const activeSdgs = getActiveSdgs();
 
-  const sdgComponents = [Sdg1, Sdg2, Sdg3, Sdg4, Sdg5, Sdg6, Sdg7, Sdg8, Sdg9, Sdg10, Sdg11, Sdg12, Sdg13, Sdg14, Sdg15, Sdg16, Sdg17];
-
-
   return (
     <div className="w-full flex flex-col items-center">
       <div className="w-full max-w-5xl">
@@ -298,12 +348,24 @@ function ReportPageContent() {
                   <div className="mt-8 pt-4 border-t-2 border-muted">
                     <h3 className="text-xl font-headline font-bold text-center mb-4">Sustainable Development Goals Impacted</h3>
                     <div className="grid grid-cols-9 gap-2">
-                      {sdgComponents.map((SdgComponent, index) => {
+                      {SDG_ICON_URLS.map((url, index) => {
                           const sdgNumber = index + 1;
                           const isActive = activeSdgs.has(sdgNumber);
+                          const fallbackUrl = FALLBACK_URLS[index];
                           return (
-                              <div key={sdgNumber} className={`aspect-square ${isActive ? 'opacity-100' : 'opacity-20 grayscale'}`}>
-                                  <SdgComponent />
+                              <div key={sdgNumber} className="relative">
+                                <img
+                                  src={url}
+                                  alt={`SDG ${sdgNumber}`}
+                                  className={`aspect-square w-12 h-12 ${isActive ? '' : 'opacity-20 grayscale'}`}
+                                  loading="lazy"
+                                  onError={(e) => {
+                                    console.warn(`Failed to load SDG ${sdgNumber} icon, using fallback`);
+                                    // Use fallback image
+                                    const img = e.target as HTMLImageElement;
+                                    img.src = fallbackUrl;
+                                  }}
+                                />
                               </div>
                           );
                       })}
