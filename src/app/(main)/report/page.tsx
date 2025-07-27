@@ -14,6 +14,7 @@ import { Logo } from "@/components/logo"
 import { Download } from "lucide-react"
 import jsPDF from "jspdf"
 import { useToast } from "@/hooks/use-toast"
+import html2canvas from "html2canvas"
 
 interface UserData {
   name?: string;
@@ -117,41 +118,47 @@ function ReportPageContent() {
       }
     };
 
-    fetchData();
+    if(!authLoading) {
+      fetchData();
+    }
   }, [getDbPath, authLoading, toast]);
   
-  const handleDownload = () => {
+  const handleDownload = async () => {
     const reportElement = reportRef.current;
     if (!reportElement) {
         toast({ title: "Error", description: "Could not find report content to download.", variant: "destructive" });
         return;
     }
 
-    const pdf = new jsPDF({
-        orientation: 'p',
-        unit: 'px',
-        format: 'a4',
-        putOnlyUsedFonts:true,
-        floatPrecision: 16
-    });
+    try {
+        const canvas = await html2canvas(reportElement, { scale: 2, useCORS: true });
+        const imgData = canvas.toDataURL('image/png');
+        
+        const pdf = new jsPDF({
+            orientation: 'p',
+            unit: 'mm',
+            format: 'a4',
+            putOnlyUsedFonts:true,
+            floatPrecision: 16
+        });
 
-    // Use a scale to fit the content to the A4 size
-    const a4Width = 445; // A4 width in pixels at 72 dpi is ~595, giving some margin
-    const scale = a4Width / reportElement.offsetWidth;
-    
-    pdf.html(reportElement, {
-        callback: function (doc) {
-            doc.save('CarbonCoin-Report.pdf');
-        },
-        html2canvas: {
-            scale: scale, 
-            useCORS: true 
-        },
-        x: 15,
-        y: 15,
-        width: a4Width,
-        windowWidth: reportElement.scrollWidth,
-    });
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+        
+        const canvasWidth = canvas.width;
+        const canvasHeight = canvas.height;
+        
+        const ratio = canvasWidth / canvasHeight;
+        const widthInPdf = pdfWidth - 20; // with margin
+        const heightInPdf = widthInPdf / ratio;
+
+        pdf.addImage(imgData, 'PNG', 10, 10, widthInPdf, heightInPdf);
+        pdf.save('CarbonCoin-Report.pdf');
+
+    } catch (error) {
+        console.error("Error generating PDF:", error);
+        toast({ title: "Download Failed", description: "Could not generate PDF for download.", variant: "destructive" });
+    }
   };
 
   if (loading || authLoading) {
@@ -166,84 +173,79 @@ function ReportPageContent() {
   
   const { name, projectDetails, calculations, agriCarbonPlots } = userData;
   const interventions: string[] = [];
-  if (calculations?.solarCarbon || calculations?.dripIrrigation) interventions.push("AgriPV");
-  if (calculations?.socSequestration || agriCarbonPlots) interventions.push("SOC");
+  const hasAgriPV = calculations?.solarCarbon || calculations?.dripIrrigation;
+  const hasSOC = calculations?.socSequestration || (agriCarbonPlots && Object.keys(agriCarbonPlots).length > 0);
+
+  if (hasAgriPV) interventions.push("AgriPV");
+  if (hasSOC) interventions.push("SOC");
+
+  const totalAgriCarbonCo2e = agriCarbonPlots ? Object.values(agriCarbonPlots).reduce((sum, plot) => sum + plot.co2e, 0) : 0;
+
 
   return (
-    <>
-      <PageHeader title="Generated Report">
-          <Button onClick={handleDownload} disabled={!reportRef.current}>
-              <Download className="mr-2 h-4 w-4" />
-              Download Report
-          </Button>
-      </PageHeader>
+    <div className="w-full flex flex-col items-center">
+      <div className="w-full max-w-5xl">
+        <PageHeader title="Generated Report">
+            <Button onClick={handleDownload} disabled={!reportRef.current}>
+                <Download className="mr-2 h-4 w-4" />
+                Download Report
+            </Button>
+        </PageHeader>
+      </div>
       
-      <div ref={reportRef} className="p-8 border rounded-lg bg-card" style={{ width: '210mm', minHeight: '297mm', fontFamily: 'Alegreya, serif' }}>
-        <style type="text/css">
-            {`
-              @media print {
-                body * {
-                  visibility: hidden;
-                }
-                #report-content, #report-content * {
-                  visibility: visible;
-                }
-                #report-content {
-                  position: absolute;
-                  left: 0;
-                  top: 0;
-                }
-              }
-            `}
-        </style>
-        <div id="report-content">
-            <header className="flex items-center justify-between pb-4 border-b-2 border-primary">
-                <Logo />
-                <h1 className="text-3xl font-headline font-bold text-primary">Carbon Impact Report</h1>
-            </header>
-            <main className="mt-8">
-                <p className="text-base leading-relaxed">
-                    The Company <strong>{name || 'N/A'}</strong> is working on {interventions.length > 0 ? interventions.join(' and ') : 'carbon reduction initiatives'}. The project name is <strong>{projectDetails?.projectName || 'N/A'}</strong> and the address is <strong>{projectDetails?.location || 'N/A'}</strong>. The location coordinates are Latitude: <strong>{projectDetails?.latitude?.toFixed(6) || 'N/A'}</strong>, Longitude: <strong>{projectDetails?.longitude?.toFixed(6) || 'N/A'}</strong>. This project is expected to generate carbon credits, impacting Sustainable Development Goals.
-                </p>
+      <div id="report-container" className="flex justify-center bg-muted/30 p-4 sm:p-8 rounded-lg w-full">
+        <div ref={reportRef} className="bg-card text-card-foreground shadow-lg" style={{ width: '210mm', minHeight: '297mm', padding: '15mm'}}>
+          <div id="report-content" style={{fontFamily: 'Alegreya, serif'}}>
+              <header className="flex items-center justify-between pb-4 border-b-2 border-primary">
+                  <Logo />
+                  <h1 className="text-3xl font-headline font-bold text-primary">Carbon Impact Report</h1>
+              </header>
+              <main className="mt-8">
+                  <p className="text-base leading-relaxed text-justify">
+                      The Company <strong>{name || 'N/A'}</strong> is working on {interventions.length > 0 ? interventions.join(' and ') : 'carbon reduction initiatives'}. The project name is <strong>{projectDetails?.projectName || 'N/A'}</strong> and the address is <strong>{projectDetails?.location || 'N/A'}</strong>. The location coordinates are Latitude: <strong>{projectDetails?.latitude?.toFixed(6) || 'N/A'}</strong>, Longitude: <strong>{projectDetails?.longitude?.toFixed(6) || 'N/A'}</strong>. This project is expected to generate carbon credits, impacting Sustainable Development Goals.
+                  </p>
 
-                <div className="mt-8 grid grid-cols-2 gap-8">
-                    <Card className="col-span-1">
-                        <CardHeader>
-                            <CardTitle className="font-headline">AgriPV & Irrigation</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-2 text-sm">
-                            <p>Solar: <strong>{calculations?.solarCarbon?.results.solar.toFixed(2) || 0} tCO₂e</strong></p>
-                            <p>Agroforestry: <strong>{calculations?.solarCarbon?.results.agro.toFixed(2) || 0} tCO₂e</strong></p>
-                            <p>Biogas: <strong>{calculations?.solarCarbon?.results.bio.toFixed(2) || 0} tCO₂e</strong></p>
-                            <p>EV Savings: <strong>{calculations?.solarCarbon?.results.ev.toFixed(2) || 0} tCO₂e</strong></p>
-                             <p className="font-bold pt-2">Total SolarCarbon: <strong>{calculations?.solarCarbon?.results.total.toFixed(2) || 0} tCO₂e</strong></p>
-                            <hr className="my-2" />
-                            <p>Drip Irrigation: <strong>{calculations?.dripIrrigation?.totalSavings.toFixed(2) || 0} tCO₂e</strong></p>
-                        </CardContent>
-                    </Card>
+                  <div className="mt-8 grid grid-cols-2 gap-8">
+                      <Card className="col-span-1">
+                          <CardHeader>
+                              <CardTitle className="font-headline">AgriPV & Irrigation</CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-2 text-sm">
+                              <p>Solar: <strong>{calculations?.solarCarbon?.results.solar?.toFixed(2) || '0.00'} tCO₂e</strong></p>
+                              <p>Agroforestry: <strong>{calculations?.solarCarbon?.results.agro?.toFixed(2) || '0.00'} tCO₂e</strong></p>
+                              <p>Biogas: <strong>{calculations?.solarCarbon?.results.bio?.toFixed(2) || '0.00'} tCO₂e</strong></p>
+                              <p>EV Savings: <strong>{calculations?.solarCarbon?.results.ev?.toFixed(2) || '0.00'} tCO₂e</strong></p>
+                              <hr className="my-2" />
+                              <p className="font-bold pt-2">Total Agri-PV: <strong>{calculations?.solarCarbon?.results.total?.toFixed(2) || '0.00'} tCO₂e</strong></p>
+                              <hr className="my-2" />
+                              <p>Drip Irrigation: <strong>{calculations?.dripIrrigation?.totalSavings?.toFixed(2) || '0.00'} tCO₂e</strong></p>
+                          </CardContent>
+                      </Card>
 
-                     <Card className="col-span-1">
-                        <CardHeader>
-                            <CardTitle className="font-headline">Soil Organic Carbon</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-2 text-sm">
-                             <p>SOC Sequestration: <strong>{calculations?.socSequestration?.co2e.toFixed(2) || 0} tCO₂e</strong></p>
-                             <hr className="my-2" />
-                             <p className="font-bold">AgriCarbon Plots:</p>
-                             {agriCarbonPlots && Object.values(agriCarbonPlots).map(plot => (
-                                 <div key={plot.plotId} className="flex justify-between">
-                                     <span>Plot {plot.plotId}:</span>
-                                     <strong>{plot.co2e.toFixed(2)} tCO₂e</strong>
-                                 </div>
-                             ))}
-                              {!agriCarbonPlots && <p>No plots added.</p>}
-                        </CardContent>
-                    </Card>
-                </div>
-            </main>
+                       <Card className="col-span-1">
+                          <CardHeader>
+                              <CardTitle className="font-headline">Soil Organic Carbon</CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-2 text-sm">
+                               <p>SOC Sequestration: <strong>{calculations?.socSequestration?.co2e?.toFixed(2) || '0.00'} tCO₂e</strong></p>
+                               <hr className="my-2" />
+                               <div className="font-bold">AgriCarbon Plots:</div>
+                               {agriCarbonPlots && Object.keys(agriCarbonPlots).length > 0 ? Object.values(agriCarbonPlots).map(plot => (
+                                   <div key={plot.plotId} className="flex justify-between">
+                                       <span>Plot {plot.plotId}:</span>
+                                       <strong>{plot.co2e.toFixed(2)} tCO₂e</strong>
+                                   </div>
+                               )) : <p>No plots added.</p>}
+                               <hr className="my-2"/>
+                               <p className="font-bold pt-2">Total from Plots: <strong>{totalAgriCarbonCo2e.toFixed(2)} tCO₂e</strong></p>
+                          </CardContent>
+                      </Card>
+                  </div>
+              </main>
+          </div>
         </div>
       </div>
-    </>
+    </div>
   )
 }
 
