@@ -2,5 +2,5 @@
 import * as React from 'react';
 
 export const Sdg5 = () => (
-  <img src="/E-WEB-Goal-05.jpg" alt="" />
+  <img src="/E-WEB-Goal-05.jpg" alt="SDG 5: Gender Equality" />
 );
