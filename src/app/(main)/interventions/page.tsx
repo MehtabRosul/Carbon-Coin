@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -295,7 +294,7 @@ function SOCCalculator() {
         const deltaSOC = socFinal - socInit
         const deltaSOCMass = deltaSOC * bd * depth
         const totalCkg = deltaSOCMass * 10000 * areaSOC * soilFactor
-        const co2e = (totalCkg) * 3.67
+        const co2e = totalCkg * 3.67
         
         const resultString = `${co2e.toFixed(2)} tCO₂e sequestered (Soil Type adjusted)`
         setResult(resultString)
@@ -397,7 +396,7 @@ function InterventionsPageContent() {
     if (step > 1) {
       setStep(s => s - 1);
     } else {
-       const separator = queryString.includes('?') ? '&' : '?';
+       const separator = queryString ? '&' : '?';
        router.push(`/agripv${queryString}${separator}step=2`);
     }
   };
@@ -456,5 +455,3 @@ export default function InterventionsPage() {
         </React.Suspense>
     )
 }
-
-    
