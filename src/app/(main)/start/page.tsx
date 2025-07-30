@@ -60,12 +60,13 @@ export default function StartPage() {
           throw new Error("Invalid user ID");
         }
         
-        console.log("Creating user profile for UID:", user.uid);
         const userRef = ref(db, `users/${user.uid}`);
         
         // Use update instead of set to preserve existing data
         await update(userRef, dataToSave);
-        router.push(`/project-details?uid=${user.uid}`);
+        
+        // Navigate without exposing UID in URL
+        router.push('/project-details');
       } else {
         const anonUsersRef = ref(db, 'anonymousUsers');
         const newAnonUserRef = push(anonUsersRef);

@@ -2,7 +2,7 @@
 "use client"
 
 import * as React from "react"
-import { useSearchParams, useRouter } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { PageHeader } from "@/components/page-header"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -14,8 +14,8 @@ import { db } from "@/lib/firebase"
 import { ref, update, get } from "firebase/database"
 import { Separator } from "@/components/ui/separator"
 import { encryptLocation, hashData, isCryptoSupported } from "@/lib/crypto"
-import { debugFirebaseConfig } from "@/lib/firebase-debug"
-import type L from 'leaflet'
+import L from "leaflet"
+import "leaflet/dist/leaflet.css"
 
 // Leaflet's CSS is included in layout.tsx to avoid direct import here
 
@@ -25,7 +25,6 @@ function toFirebaseKey(num: number) {
 
 export default function ProjectDetailsForm() {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const { user, loading } = useAuth()
   const { toast } = useToast()
 
@@ -36,20 +35,11 @@ export default function ProjectDetailsForm() {
   const [manualLatitude, setManualLatitude] = React.useState("")
   const [manualLongitude, setManualLongitude] = React.useState("")
 
-  const [anonId, setAnonId] = React.useState<string | null>(null);
-  const [uid, setUid] = React.useState<string | null>(null);
-
-
   const mapRef = React.useRef<L.Map | null>(null)
   const containerRef = React.useRef<HTMLDivElement>(null)
   const markerRef = React.useRef<L.Marker | null>(null)
 
   const updateCoordsRef = React.useRef<(lat: number, lng: number) => void>(() => {});
-
-  React.useEffect(() => {
-    setAnonId(searchParams.get('anonId'));
-    setUid(searchParams.get('uid'));
-  }, [searchParams]);
 
   React.useEffect(() => {
     if (mapRef.current || !containerRef.current) return;
@@ -174,19 +164,6 @@ export default function ProjectDetailsForm() {
       return
     }
 
-    // Debug authentication status
-    console.log("Auth Debug:", {
-      user: user?.uid,
-      userEmail: user?.email,
-      anonId,
-      uid,
-      loading,
-      isAuthenticated: !!user
-    });
-
-    // Debug Firebase configuration
-    debugFirebaseConfig();
-
     try {
       // Encrypt the location coordinates
       const encryptedLocation = await encryptLocation(latitude, longitude);
@@ -229,12 +206,9 @@ export default function ProjectDetailsForm() {
       let userPath;
       let queryString = '';
 
-      if (user && uid) {
-          userPath = `users/${uid}`;
-          queryString = `?uid=${uid}`;
-      } else if (anonId) {
-          userPath = `anonymousUsers/${anonId}`;
-          queryString = `?anonId=${anonId}`;
+      if (user && user.uid) {
+          userPath = `users/${user.uid}`;
+          queryString = `?uid=${user.uid}`;
       } else {
           if(!loading) {
               toast({
@@ -262,7 +236,7 @@ export default function ProjectDetailsForm() {
       
       // Track exact coordinates usage (prevents any other user from using same lat/lng)
       updates[`/coordinates/${coordinateKey}`] = {
-        userId: user?.uid || anonId || 'anonymous',
+        userId: user?.uid || 'anonymous',
         timestamp: Date.now(),
         projectName: projectName,
         latitude: latitude,
@@ -271,38 +245,26 @@ export default function ProjectDetailsForm() {
       
       // Track global location usage (prevents any other user from using same coordinates)
       updates[`/locations/${locationHash}`] = {
-        userId: user?.uid || anonId || 'anonymous',
+        userId: user?.uid || 'anonymous',
         timestamp: Date.now(),
         projectName: projectName
       };
-
-      // Debug: Log what we're trying to save
-      console.log("Firebase Debug:", {
-        userPath,
-        locationHash,
-        updates,
-        user: user?.uid,
-        anonId
-      });
 
       // Save both user data and location hash atomically
       await update(ref(db), updates);
       
       toast({
-        title: "Project Details Saved!",
-        description: "Your project information has been stored securely.",
+        title: "Success!",
+        description: "Project details saved successfully.",
       })
-      router.push(`/onboarding${queryString}`)
+      
+      // Navigate without exposing UID in URL
+      router.push('/agripv')
     } catch (error: any) {
       console.error("Save error:", error);
-      console.error("Error details:", {
-        message: error?.message || 'Unknown error',
-        code: error?.code || 'No code',
-        stack: error?.stack || 'No stack'
-      });
       toast({
-        title: "Save Failed",
-        description: "Could not save your project details. Please try again.",
+        title: "Error",
+        description: "Failed to save project details. Please try again.",
         variant: "destructive",
       })
     }

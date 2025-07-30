@@ -7,25 +7,14 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { BarChart, Droplets, Calculator } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
-import { useSearchParams } from "next/navigation"
 
 function OnboardingContent() {
   const { user } = useAuth();
-  const searchParams = useSearchParams();
   
+  // Remove URL parameter handling - use only authenticated user data
   const getLinkWithParams = (basePath: string) => {
-    const uid = searchParams.get('uid');
-    const anonId = searchParams.get('anonId');
-    let queryString = '';
-
-    if (user && user.uid) {
-        queryString = `?uid=${user.uid}`;
-    } else if (uid) {
-        queryString = `?uid=${uid}`;
-    } else if (anonId) {
-        queryString = `?anonId=${anonId}`;
-    }
-    return `${basePath}${queryString}`;
+    // Navigate without exposing UID in URL
+    return basePath;
   }
 
   return (

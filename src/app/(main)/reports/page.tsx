@@ -9,7 +9,7 @@ import { Download, FileText, Eye } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/use-auth"
 import { db } from "@/lib/firebase"
-import { ref, push, set, onValue, serverTimestamp } from "firebase/database"
+import { ref, push, set, onValue, serverTimestamp, get } from "firebase/database"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 
@@ -25,25 +25,33 @@ export default function ReportsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
-  const [reports, setReports] = React.useState<Report[]>([]);
+  const [reports, setReports] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
-    if (!user) return;
-    const reportsRef = ref(db, `users/${user.uid}/reports`);
-    const unsubscribe = onValue(reportsRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        const reportsList = Object.keys(data).map(key => ({
-          id: key,
-          ...data[key]
-        }));
-        setReports(reportsList);
-      } else {
-        setReports([]);
+    const fetchReports = async () => {
+      if (!user?.uid) {
+        setLoading(false);
+        return;
       }
-    });
 
-    return () => unsubscribe();
+      try {
+        const userRef = ref(db, `users/${user.uid}`);
+        const snapshot = await get(userRef);
+        
+        if (snapshot.exists()) {
+          const userData = snapshot.val();
+          // Process reports data
+          setReports([userData]); // Simplified for now
+        }
+      } catch (error) {
+        console.error('Error fetching reports:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReports();
   }, [user]);
 
   const handleGenerateReport = async () => {

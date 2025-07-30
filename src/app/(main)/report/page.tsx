@@ -2,20 +2,20 @@
 "use client"
 
 import * as React from "react"
-import { useSearchParams } from "next/navigation"
 import { useAuth } from "@/hooks/use-auth"
+import { useToast } from "@/hooks/use-toast"
+import { PageHeader } from "@/components/page-header"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import { db } from "@/lib/firebase"
 import { ref, get } from "firebase/database"
-import { PageHeader } from "@/components/page-header"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Logo } from "@/components/logo"
-import { Download } from "lucide-react"
-import jsPDF from "jspdf"
-import { useToast } from "@/hooks/use-toast"
-import html2canvas from "html2canvas"
 import { decryptLocation, isCryptoSupported } from "@/lib/crypto"
+import { jsPDF } from "jspdf"
+import "jspdf-autotable"
+import html2canvas from "html2canvas"
+import { Download } from "lucide-react"
+import { Logo } from "@/components/logo"
 
 import { SDG_ICON_URLS, FALLBACK_URLS } from "@/components/sdg-icons"
 
@@ -86,7 +86,6 @@ function ReportSkeleton() {
 
 
 function ReportPageContent() {
-  const searchParams = useSearchParams()
   const { user, loading: authLoading } = useAuth()
   const [userData, setUserData] = React.useState<UserData | null>(null)
   const [decryptedCoordinates, setDecryptedCoordinates] = React.useState<{latitude: number, longitude: number} | null>(null)
@@ -95,13 +94,10 @@ function ReportPageContent() {
   const reportRef = React.useRef<HTMLDivElement>(null)
 
   const getDbPath = React.useCallback(() => {
-    const uid = searchParams.get('uid');
-    const anonId = searchParams.get('anonId');
+    // Use only authenticated user data
     if (user?.uid) return `users/${user.uid}`;
-    if (uid) return `users/${uid}`;
-    if (anonId) return `anonymousUsers/${anonId}`;
     return null;
-  }, [user, searchParams]);
+  }, [user]);
 
   React.useEffect(() => {
     const fetchData = async () => {

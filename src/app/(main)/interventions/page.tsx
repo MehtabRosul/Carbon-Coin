@@ -23,7 +23,7 @@ import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/use-auth"
 import { db } from "@/lib/firebase"
 import { ref, set, onValue, remove } from "firebase/database"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { X } from "lucide-react"
 
 
@@ -43,19 +43,14 @@ interface AgriCarbonPlot {
 function AgriCarbonCalculator() {
   const { user } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { toast } = useToast();
   const [plots, setPlots] = React.useState<AgriCarbonPlot[]>([]);
   const formRef = React.useRef<HTMLFormElement>(null);
 
   const getDbPath = React.useCallback(() => {
-    const uid = searchParams.get('uid');
-    const anonId = searchParams.get('anonId');
     if (user?.uid) return `users/${user.uid}/agriCarbonPlots`;
-    if (uid) return `users/${uid}/agriCarbonPlots`;
-    if (anonId) return `anonymousUsers/${anonId}/agriCarbonPlots`;
     return null;
-  }, [user, searchParams]);
+  }, [user]);
 
   React.useEffect(() => {
     const dbPath = getDbPath();
@@ -98,10 +93,9 @@ function AgriCarbonCalculator() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const dbPath = getDbPath();
-    const uid = searchParams.get('uid');
-    const anonId = searchParams.get('anonId');
+    const uid = user?.uid;
 
-    if (!user && !uid && !anonId) {
+    if (!user) {
       toast({ title: "Not Logged In", description: "You need to be logged in to add a plot.", variant: "destructive" });
       router.push('/login');
       return;
@@ -230,18 +224,14 @@ function SOCCalculator() {
     const { toast } = useToast()
     const { user } = useAuth()
     const router = useRouter()
-    const searchParams = useSearchParams()
     const [result, setResult] = React.useState<string | null>(null)
     const formRef = React.useRef<HTMLFormElement>(null);
 
     const getDbPath = React.useCallback(() => {
-        const uid = searchParams.get('uid');
-        const anonId = searchParams.get('anonId');
-        if(user?.uid) return `users/${user.uid}/calculations/socSequestration`;
-        if (uid) return `users/${uid}/calculations/socSequestration`;
-        if (anonId) return `anonymousUsers/${anonId}/calculations/socSequestration`;
+        const uid = user?.uid;
+        if(uid) return `users/${uid}/calculations/socSequestration`;
         return null;
-    }, [user, searchParams]);
+    }, [user]);
 
     React.useEffect(() => {
         const dbPath = getDbPath();
@@ -271,10 +261,9 @@ function SOCCalculator() {
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
 
-        const uid = searchParams.get('uid');
-        const anonId = searchParams.get('anonId');
+        const uid = user?.uid;
 
-        if (!user && !uid && !anonId) {
+        if (!user) {
             toast({ title: "Not Logged In", description: "You need to be logged in to save calculations.", variant: "destructive" });
             router.push('/login');
             return;
@@ -366,22 +355,12 @@ function SOCCalculator() {
 function InterventionsPageContent() {
   const [step, setStep] = React.useState(1);
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { user } = useAuth();
 
+  // Remove URL parameter handling - use only authenticated user data
   const getQueryString = () => {
-    const uid = searchParams.get('uid');
-    const anonId = searchParams.get('anonId');
-    let queryString = '';
-
-    if (user?.uid) {
-        queryString = `?uid=${user.uid}`;
-    } else if (uid) {
-        queryString = `?uid=${uid}`;
-    } else if (anonId) {
-        queryString = `?anonId=${anonId}`;
-    }
-    return queryString;
+    // Navigate without exposing UID in URL
+    return '';
   }
 
   const handleNext = () => {
@@ -391,18 +370,15 @@ function InterventionsPageContent() {
   };
 
   const handlePrevious = () => {
-    const queryString = getQueryString();
-    
     if (step > 1) {
       setStep(s => s - 1);
     } else {
-       const separator = queryString ? '&' : '?';
-       router.push(`/agripv${queryString}${separator}step=2`);
+       router.push('/agripv?step=2');
     }
   };
   
   const handleGenerateReport = () => {
-    router.push(`/report${getQueryString()}`);
+    router.push('/report');
   };
 
 

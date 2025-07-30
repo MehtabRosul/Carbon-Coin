@@ -2,33 +2,32 @@
 "use client"
 
 import * as React from "react"
-import { PageHeader } from "@/components/page-header"
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/use-auth"
+import { useToast } from "@/hooks/use-toast"
+import { PageHeader } from "@/components/page-header"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Separator } from "@/components/ui/separator"
 import { db } from "@/lib/firebase"
-import { ref, set, onValue } from "firebase/database"
-import { useRouter, useSearchParams } from "next/navigation"
+import { ref, push, set, onValue, serverTimestamp } from "firebase/database"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { BarChart, Droplets, Calculator, ArrowLeft, ArrowRight } from "lucide-react"
+import { SDG_ICON_URLS, FALLBACK_URLS } from "@/components/sdg-icons"
 
 function SolarCarbonCalculator() {
     const { toast } = useToast()
     const { user } = useAuth()
     const router = useRouter()
-    const searchParams = useSearchParams()
     const [results, setResults] = React.useState<{ [key: string]: number } | null>(null)
     const formRef = React.useRef<HTMLFormElement>(null)
 
      const getDbPath = React.useCallback(() => {
-        const uid = searchParams.get('uid');
-        const anonId = searchParams.get('anonId');
         if (user?.uid) return `users/${user.uid}/calculations/solarCarbon`;
-        if (uid) return `users/${uid}/calculations/solarCarbon`;
-        if (anonId) return `anonymousUsers/${anonId}/calculations/solarCarbon`;
         return null;
-    }, [user, searchParams]);
+    }, [user]);
 
     React.useEffect(() => {
         const dbPath = getDbPath();
@@ -55,10 +54,9 @@ function SolarCarbonCalculator() {
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
         
-        const uid = searchParams.get('uid')
-        const anonId = searchParams.get('anonId')
+        const uid = user?.uid
 
-        if (!user && !uid && !anonId) {
+        if (!user) {
             toast({ title: "Not Logged In", description: "You need to be logged in to save calculations.", variant: "destructive" });
             router.push('/login');
             return;
@@ -165,18 +163,13 @@ function DripIrrigationCalculator() {
     const { toast } = useToast()
     const { user } = useAuth()
     const router = useRouter()
-    const searchParams = useSearchParams()
     const [result, setResult] = React.useState<string | null>(null)
     const formRef = React.useRef<HTMLFormElement>(null);
 
     const getDbPath = React.useCallback(() => {
-        const uid = searchParams.get('uid');
-        const anonId = searchParams.get('anonId');
         if (user?.uid) return `users/${user.uid}/calculations/dripIrrigation`;
-        if (uid) return `users/${uid}/calculations/dripIrrigation`;
-        if (anonId) return `anonymousUsers/${anonId}/calculations/dripIrrigation`;
         return null;
-    }, [user, searchParams]);
+    }, [user]);
 
     React.useEffect(() => {
         const dbPath = getDbPath();
@@ -200,10 +193,9 @@ function DripIrrigationCalculator() {
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
         
-        const uid = searchParams.get('uid')
-        const anonId = searchParams.get('anonId')
+        const uid = user?.uid
 
-         if (!user && !uid && !anonId) {
+         if (!user) {
             toast({ title: "Not Logged In", description: "You need to be logged in to save calculations.", variant: "destructive" });
             router.push('/login');
             return;
@@ -271,34 +263,17 @@ function DripIrrigationCalculator() {
 
 function AgriPVPageContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { user } = useAuth();
   
-  const initialStep = parseInt(searchParams.get('step') || '1', 10);
+  const initialStep = 1;
   const [step, setStep] = React.useState(initialStep);
 
-  const getQueryString = () => {
-    const uid = searchParams.get('uid');
-    const anonId = searchParams.get('anonId');
-    let queryString = '';
-
-    if (user?.uid) {
-        queryString = `?uid=${user.uid}`;
-    } else if (uid) {
-        queryString = `?uid=${uid}`;
-    } else if (anonId) {
-        queryString = `?anonId=${anonId}`;
-    }
-    return queryString;
-  }
-
+  // Remove URL parameter handling - use only authenticated user data
   const handleNext = () => {
-    const queryString = getQueryString();
-
     if (step === 1) {
       setStep(2);
     } else if (step === 2) {
-      router.push(`/interventions${queryString}`);
+      router.push('/interventions');
     }
   };
 
