@@ -15,6 +15,7 @@ import { Download } from "lucide-react"
 import jsPDF from "jspdf"
 import { useToast } from "@/hooks/use-toast"
 import html2canvas from "html2canvas"
+import { decryptLocation, isCryptoSupported } from "@/lib/crypto"
 
 import { SDG_ICON_URLS, FALLBACK_URLS } from "@/components/sdg-icons"
 
@@ -25,6 +26,9 @@ interface UserData {
     location?: string;
     latitude?: number;
     longitude?: number;
+    encryptedLocation?: string;
+    locationIV?: string;
+    keyVersion?: string;
   };
   calculations?: {
     solarCarbon?: {
@@ -85,6 +89,7 @@ function ReportPageContent() {
   const searchParams = useSearchParams()
   const { user, loading: authLoading } = useAuth()
   const [userData, setUserData] = React.useState<UserData | null>(null)
+  const [decryptedCoordinates, setDecryptedCoordinates] = React.useState<{latitude: number, longitude: number} | null>(null)
   const [loading, setLoading] = React.useState(true)
   const { toast } = useToast()
   const reportRef = React.useRef<HTMLDivElement>(null)
@@ -108,7 +113,45 @@ function ReportPageContent() {
         const userRef = ref(db, dbPath);
         const snapshot = await get(userRef);
         if (snapshot.exists()) {
-          setUserData(snapshot.val());
+          const data = snapshot.val();
+          setUserData(data);
+          
+          // Decrypt location data if it exists
+          if (data.projectDetails?.encryptedLocation && data.projectDetails?.locationIV) {
+            try {
+              if (isCryptoSupported()) {
+                const coordinates = await decryptLocation(
+                  data.projectDetails.encryptedLocation,
+                  data.projectDetails.locationIV,
+                  data.projectDetails.keyVersion || 'v1'
+                );
+                setDecryptedCoordinates(coordinates);
+              } else {
+                // Fallback to unencrypted data if crypto not supported
+                if (data.projectDetails.latitude && data.projectDetails.longitude) {
+                  setDecryptedCoordinates({
+                    latitude: data.projectDetails.latitude,
+                    longitude: data.projectDetails.longitude
+                  });
+                }
+              }
+            } catch (decryptError) {
+              console.error("Decryption failed:", decryptError);
+              // Fallback to unencrypted data
+              if (data.projectDetails.latitude && data.projectDetails.longitude) {
+                setDecryptedCoordinates({
+                  latitude: data.projectDetails.latitude,
+                  longitude: data.projectDetails.longitude
+                });
+              }
+            }
+          } else if (data.projectDetails?.latitude && data.projectDetails?.longitude) {
+            // Handle legacy unencrypted data
+            setDecryptedCoordinates({
+              latitude: data.projectDetails.latitude,
+              longitude: data.projectDetails.longitude
+            });
+          }
         } else {
           toast({ title: "No Data Found", description: "Could not find any data for this user.", variant: "destructive" });
         }
@@ -305,7 +348,7 @@ function ReportPageContent() {
               </header>
               <main className="mt-8">
                   <p className="text-base leading-relaxed text-justify">
-                      The Company <strong>{name || 'N/A'}</strong> is working on {interventions.length > 0 ? interventions.join(' and ') : 'carbon reduction initiatives'}. The project name is <strong>{projectDetails?.projectName || 'N/A'}</strong> and the address is <strong>{projectDetails?.location || 'N/A'}</strong>. The location coordinates are Latitude: <strong>{projectDetails?.latitude?.toFixed(6) || 'N/A'}</strong>, Longitude: <strong>{projectDetails?.longitude?.toFixed(6) || 'N/A'}</strong>. This project is expected to generate carbon credits, impacting Sustainable Development Goals.
+                      The Company <strong>{name || 'N/A'}</strong> is working on {interventions.length > 0 ? interventions.join(' and ') : 'carbon reduction initiatives'}. The project name is <strong>{projectDetails?.projectName || 'N/A'}</strong> and the address is <strong>{projectDetails?.location || 'N/A'}</strong>. The location coordinates are Latitude: <strong>{decryptedCoordinates?.latitude?.toFixed(6) || 'N/A'}</strong>, Longitude: <strong>{decryptedCoordinates?.longitude?.toFixed(6) || 'N/A'}</strong>. This project is expected to generate carbon credits, impacting Sustainable Development Goals.
                   </p>
 
                   <div className="mt-8 grid grid-cols-2 gap-8">

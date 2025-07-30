@@ -11,11 +11,17 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/use-auth"
 import { db } from "@/lib/firebase"
-import { ref, update } from "firebase/database"
+import { ref, update, get } from "firebase/database"
 import { Separator } from "@/components/ui/separator"
+import { encryptLocation, hashData, isCryptoSupported } from "@/lib/crypto"
+import { debugFirebaseConfig } from "@/lib/firebase-debug"
 import type L from 'leaflet'
 
 // Leaflet's CSS is included in layout.tsx to avoid direct import here
+
+function toFirebaseKey(num: number) {
+  return num.toString().replace(/\./g, 'd');
+}
 
 export default function ProjectDetailsForm() {
   const router = useRouter()
@@ -148,44 +154,152 @@ export default function ProjectDetailsForm() {
       return
     }
 
-    const projectData = {
-      projectDetails: {
-        projectName,
-        location,
-        latitude,
-        longitude,
-      }
+    // Check if coordinates are selected
+    if (latitude === null || longitude === null) {
+      toast({
+        title: "Location Required",
+        description: "Please select a location on the map or enter coordinates.",
+        variant: "destructive",
+      })
+      return
     }
 
-    let dbRef;
-    let queryString = '';
-
-    if (user && uid) {
-        dbRef = ref(db, `users/${uid}`);
-        queryString = `?uid=${uid}`;
-    } else if (anonId) {
-        dbRef = ref(db, `anonymousUsers/${anonId}`);
-        queryString = `?anonId=${anonId}`;
-    } else {
-        if(!loading) {
-            toast({
-                title: "Error",
-                description: "Could not identify user session. Please go back and start again.",
-                variant: "destructive",
-            });
-        }
-      return;
+    // Check if crypto is supported
+    if (!isCryptoSupported()) {
+      toast({
+        title: "Browser Not Supported",
+        description: "Your browser doesn't support encryption. Please use a modern browser.",
+        variant: "destructive",
+      })
+      return
     }
+
+    // Debug authentication status
+    console.log("Auth Debug:", {
+      user: user?.uid,
+      userEmail: user?.email,
+      anonId,
+      uid,
+      loading,
+      isAuthenticated: !!user
+    });
+
+    // Debug Firebase configuration
+    debugFirebaseConfig();
 
     try {
-      await update(dbRef, projectData);
+      // Encrypt the location coordinates
+      const encryptedLocation = await encryptLocation(latitude, longitude);
+      
+      // Generate hash for duplicate detection
+      const locationHash = await hashData(encryptedLocation.data);
+      
+      const latKey = toFirebaseKey(latitude);
+      const lngKey = toFirebaseKey(longitude);
+      const coordinateKey = `${latKey}_${lngKey}`;
+
+      // Check for duplicate coordinates using exact lat/long values
+      const coordinatesRef = ref(db, `coordinates/${coordinateKey}`);
+      const coordinatesSnapshot = await get(coordinatesRef);
+      
+      if (coordinatesSnapshot.exists()) {
+        toast({
+          title: "Coordinates Already Taken",
+          description: "These exact coordinates are already registered by another user. Please select a different location.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      // Check for duplicate locations globally (any user) - keep existing hash check
+      const globalLocationRef = ref(db, `locations/${locationHash}`);
+      const globalLocationSnapshot = await get(globalLocationRef);
+      
+      if (globalLocationSnapshot.exists()) {
+        toast({
+          title: "Location Already Taken",
+          description: "This plot location is already registered by another user. Please select a different location.",
+          variant: "destructive",
+        })
+        return
+      }
+
+
+
+      let userPath;
+      let queryString = '';
+
+      if (user && uid) {
+          userPath = `users/${uid}`;
+          queryString = `?uid=${uid}`;
+      } else if (anonId) {
+          userPath = `anonymousUsers/${anonId}`;
+          queryString = `?anonId=${anonId}`;
+      } else {
+          if(!loading) {
+              toast({
+                  title: "Error",
+                  description: "Could not identify user session. Please go back and start again.",
+                  variant: "destructive",
+              });
+          }
+        return;
+      }
+
+      // Prepare updates for atomic operation
+      const updates: { [key: string]: any } = {};
+      
+      // Update user data - preserve existing data and add project details
+      updates[`/${userPath}/projectDetails`] = {
+        projectName,
+        location,
+        latitude: latitude,  // Store exact lat value
+        longitude: longitude, // Store exact lng value
+        encryptedLocation: encryptedLocation.data,
+        locationIV: encryptedLocation.iv,
+        keyVersion: encryptedLocation.keyVersion,
+      };
+      
+      // Track exact coordinates usage (prevents any other user from using same lat/lng)
+      updates[`/coordinates/${coordinateKey}`] = {
+        userId: user?.uid || anonId || 'anonymous',
+        timestamp: Date.now(),
+        projectName: projectName,
+        latitude: latitude,
+        longitude: longitude
+      };
+      
+      // Track global location usage (prevents any other user from using same coordinates)
+      updates[`/locations/${locationHash}`] = {
+        userId: user?.uid || anonId || 'anonymous',
+        timestamp: Date.now(),
+        projectName: projectName
+      };
+
+      // Debug: Log what we're trying to save
+      console.log("Firebase Debug:", {
+        userPath,
+        locationHash,
+        updates,
+        user: user?.uid,
+        anonId
+      });
+
+      // Save both user data and location hash atomically
+      await update(ref(db), updates);
+      
       toast({
         title: "Project Details Saved!",
-        description: "Your project information has been stored successfully.",
+        description: "Your project information has been stored securely.",
       })
       router.push(`/onboarding${queryString}`)
-    } catch (error) {
-      console.error("Firebase error:", error);
+    } catch (error: any) {
+      console.error("Save error:", error);
+      console.error("Error details:", {
+        message: error?.message || 'Unknown error',
+        code: error?.code || 'No code',
+        stack: error?.stack || 'No stack'
+      });
       toast({
         title: "Save Failed",
         description: "Could not save your project details. Please try again.",

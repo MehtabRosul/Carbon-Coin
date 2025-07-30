@@ -2,7 +2,7 @@
 "use client"
 
 import * as React from "react"
-import { Phone, Mail, Building2 } from "lucide-react"
+import { Phone, Mail, Building2, LogOut, User } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { PageHeader } from "@/components/page-header"
 import { Input } from "@/components/ui/input"
@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
 import { db } from "@/lib/firebase"
-import { ref, set, push } from "firebase/database"
+import { ref, set, push, update } from "firebase/database"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 
@@ -20,9 +20,26 @@ export default function StartPage() {
   const [email, setEmail] = React.useState("")
   const [name, setName] = React.useState("")
 
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
   const { toast } = useToast()
   const router = useRouter()
+
+  const handleSignOut = async () => {
+    try {
+      await logout()
+      toast({
+        title: "Signed Out",
+        description: "You have been signed out successfully.",
+      })
+      router.push("/login")
+    } catch (error) {
+      toast({
+        title: "Sign Out Error",
+        description: "Failed to sign out. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
 
   const handleContinue = async () => {
     const dataToSave = {
@@ -38,8 +55,16 @@ export default function StartPage() {
 
     try {
       if (user) {
+        // Ensure we have a valid user UID
+        if (!user.uid) {
+          throw new Error("Invalid user ID");
+        }
+        
+        console.log("Creating user profile for UID:", user.uid);
         const userRef = ref(db, `users/${user.uid}`);
-        await set(userRef, dataToSave);
+        
+        // Use update instead of set to preserve existing data
+        await update(userRef, dataToSave);
         router.push(`/project-details?uid=${user.uid}`);
       } else {
         const anonUsersRef = ref(db, 'anonymousUsers');
@@ -64,10 +89,33 @@ export default function StartPage() {
   return (
     <div className="flex-grow flex flex-col items-center justify-center">
       <div className="w-full max-w-4xl">
+        {/* Debug Header - Top of Page */}
+        {user && (
+          <div className="mb-6 p-3 bg-muted rounded-lg border">
+            <div className="flex items-center justify-between">
+                             <div className="flex items-center space-x-3">
+                 <User className="h-4 w-4" />
+                 <div>
+                   <p className="text-sm font-medium">Current User: {user.email}</p>
+                 </div>
+               </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleSignOut}
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
+            </div>
+          </div>
+        )}
+        
         <PageHeader
           title="Your Journey to Impact Starts Here"
           description="By providing your details, you're taking the first step towards accurately measuring and understanding your environmental impact."
         />
+        
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
           <Card
             className={cn(
@@ -110,7 +158,7 @@ export default function StartPage() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card
             className={cn(
               "flex flex-col cursor-pointer transition-all"
@@ -126,14 +174,16 @@ export default function StartPage() {
               <div className="space-y-4 flex-grow">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email Address</Label>
-                  <Input id="email" type="email" placeholder="Enter your email" value={email} onChange={e => setEmail(e.target.value)} />
+                  <Input id="email" type="email" placeholder="Enter your email address" value={email} onChange={e => setEmail(e.target.value)} />
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
         <div className="text-center mt-8">
-            <Button size="lg" onClick={handleContinue}>Continue</Button>
+          <Button size="lg" onClick={handleContinue}>
+            Continue
+          </Button>
         </div>
 
         <div className="text-center mt-12 max-w-3xl mx-auto">
