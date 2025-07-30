@@ -259,7 +259,7 @@ export default function ProjectDetailsForm() {
       })
       
       // Navigate without exposing UID in URL
-      router.push('/agripv')
+      router.push('/onboarding')
     } catch (error: any) {
       console.error("Save error:", error);
       toast({
