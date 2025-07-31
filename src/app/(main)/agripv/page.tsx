@@ -9,6 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Separator } from "@/components/ui/separator"
 import { db } from "@/lib/firebase"
 import { ref, push, set, onValue, serverTimestamp } from "firebase/database"
@@ -17,14 +19,34 @@ import Link from "next/link"
 import { BarChart, Droplets, Calculator, ArrowLeft, ArrowRight } from "lucide-react"
 import { SDG_ICON_URLS, FALLBACK_URLS } from "@/components/sdg-icons"
 
+interface CalculationResult {
+  name: string;
+  capacity: string;
+  energy: string;
+  emission: string;
+  credits: number;
+}
+
+interface CalculationSummary {
+  results: CalculationResult[];
+  totalCredits: number;
+  timeframe: string;
+  inputs: {
+    capacity: number;
+    dripArea: number;
+    agroArea: number;
+    timeframe: string;
+  };
+}
+
 function SolarCarbonCalculator() {
     const { toast } = useToast()
     const { user } = useAuth()
     const router = useRouter()
-    const [results, setResults] = React.useState<{ [key: string]: number } | null>(null)
+    const [calculationSummary, setCalculationSummary] = React.useState<CalculationSummary | null>(null)
     const formRef = React.useRef<HTMLFormElement>(null)
 
-     const getDbPath = React.useCallback(() => {
+    const getDbPath = React.useCallback(() => {
         if (user?.uid) return `users/${user.uid}/calculations/solarCarbon`;
         return null;
     }, [user]);
@@ -37,24 +59,22 @@ function SolarCarbonCalculator() {
         const unsubscribe = onValue(calcRef, (snapshot) => {
             const data = snapshot.val();
             if (data && data.results) {
-                setResults(data.results);
+                setCalculationSummary(data);
                 if (formRef.current && data.inputs) {
-                    (formRef.current.elements.namedItem("solarMWh") as HTMLInputElement).value = data.inputs.solarMWh || "";
-                    (formRef.current.elements.namedItem("agroforestry") as HTMLInputElement).value = data.inputs.a || "";
+                    (formRef.current.elements.namedItem("capacity") as HTMLInputElement).value = data.inputs.capacity || "";
                     (formRef.current.elements.namedItem("dripArea") as HTMLInputElement).value = data.inputs.dripArea || "";
-                    (formRef.current.elements.namedItem("biogas") as HTMLInputElement).value = data.inputs.b || "";
+                    (formRef.current.elements.namedItem("agroArea") as HTMLInputElement).value = data.inputs.agroArea || "";
+                    const timeframeSelect = formRef.current.elements.namedItem("timeframe") as HTMLSelectElement;
+                    if(timeframeSelect) timeframeSelect.value = data.inputs.timeframe || "year";
                 }
             }
         });
         return () => unsubscribe();
     }, [getDbPath]);
 
-
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
         
-        const uid = user?.uid
-
         if (!user) {
             toast({ title: "Not Logged In", description: "You need to be logged in to save calculations.", variant: "destructive" });
             router.push('/login');
@@ -63,37 +83,90 @@ function SolarCarbonCalculator() {
 
         const formData = new FormData(e.currentTarget)
         
-        // Solar calculation inputs
-        const solarMWh = parseFloat(formData.get("solarMWh") as string) || 0 // MWh directly from user
-        
-        // Other inputs
-        const a = parseFloat(formData.get("agroforestry") as string) || 0
-        const dripArea = parseFloat(formData.get("dripArea") as string) || 0 // ha for drip irrigation
-        const b = parseFloat(formData.get("biogas") as string) || 0
+        const capacity = parseFloat(formData.get("capacity") as string) || 0
+        const dripArea = parseFloat(formData.get("dripArea") as string) || 0
+        const agroArea = parseFloat(formData.get("agroArea") as string) || 0
+        const timeframe = formData.get("timeframe") as string || "year"
 
-        // Calculations
-        const solar = solarMWh * 0.82 // 0.82 tCO₂e/MWh
-        const agro = a * 7 // 7 tCO₂e/ha
-        const drip = dripArea * 1.2 * 0.82 // ha × 1.2 × 0.82 tCO₂e/MWh
-        const bio = (b * 1.8) / 1000 // 1.8 kgCO₂e/m³ converted to tCO₂e
-        const total = solar + agro + drip + bio
+        if (capacity <= 0) {
+            toast({ title: "Invalid Input", description: "Please enter a valid Installed Capacity (MW).", variant: "destructive" });
+            return;
+        }
 
-        const calculationResults = { solar, agro, drip, bio, total, solarMWh, dripArea };
-        setResults(calculationResults);
+        const hoursYear = 8760;
+        const divisor = (timeframe === "month") ? 12 : 1;
+        const label = (timeframe === "month") ? "per Month" : "per Year";
+
+        const results: CalculationResult[] = [];
+
+        // Solar PV, Wind, and Biomass calculations
+        const projects = [
+            { name: "Solar PV", factor: 0.19, emission: 0.82 },
+            { name: "Wind", factor: 0.25, emission: 0.82 },
+            { name: "Biomass/WtE", factor: 0.80, emission: 0.95 }
+        ];
+
+        for (let p of projects) {
+            const energy = (capacity * hoursYear * p.factor) / divisor;
+            const credits = (energy * p.emission);
+            results.push({
+                name: p.name,
+                capacity: `${capacity} MW`,
+                energy: `${energy.toLocaleString(undefined, { maximumFractionDigits: 0 })} MWh`,
+                emission: `${p.emission} tCO₂/MWh`,
+                credits: credits
+            });
+        }
+
+        // Agroforestry
+        if (agroArea > 0) {
+            const agroEmission = 6.11;
+            const agroCredits = (agroArea * agroEmission) / divisor;
+            results.push({
+                name: "Agroforestry",
+                capacity: `${agroArea} ha`,
+                energy: "—",
+                emission: "6.11 tCO₂/ha/year",
+                credits: agroCredits
+            });
+        }
+
+        // Drip Irrigation
+        if (dripArea > 0) {
+            const dieselPerSqm = 0.4;
+            const CO2perLitre = 2.68;
+            const sqm = dripArea * 10000;
+            const litresSaved = (dieselPerSqm * sqm) / divisor;
+            const dripCredits = (litresSaved * CO2perLitre) / 1000;
+            results.push({
+                name: "Drip Irrigation",
+                capacity: `${dripArea} ha`,
+                energy: `${litresSaved.toLocaleString(undefined, { maximumFractionDigits: 0 })} L diesel saved`,
+                emission: "2.68 kg CO₂/L",
+                credits: dripCredits
+            });
+        }
+
+        const totalCredits = results.reduce((sum, result) => sum + result.credits, 0);
+
+        const summary: CalculationSummary = {
+            results,
+            totalCredits,
+            timeframe: label,
+            inputs: { capacity, dripArea, agroArea, timeframe }
+        };
+
+        setCalculationSummary(summary);
 
         const dbPath = getDbPath();
         if (!dbPath) {
-             toast({ title: "Error", description: "Could not identify user session.", variant: "destructive" });
-             return;
+            toast({ title: "Error", description: "Could not identify user session.", variant: "destructive" });
+            return;
         }
 
         try {
-            const dataToSave = {
-                inputs: { solarMWh, a, dripArea, b },
-                results: calculationResults
-            };
             const calcRef = ref(db, dbPath);
-            await set(calcRef, dataToSave);
+            await set(calcRef, summary);
             toast({ title: "Calculation Saved", description: "Your SolarCarbon results have been saved." });
         } catch (error) {
             console.error("Firebase error:", error);
@@ -102,7 +175,7 @@ function SolarCarbonCalculator() {
     }
     
     const handleClear = async () => {
-        setResults(null);
+        setCalculationSummary(null);
         if (formRef.current) {
             formRef.current.reset();
         }
@@ -124,44 +197,89 @@ function SolarCarbonCalculator() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>SolarCarbon Calculator</CardTitle>
-                <CardDescription>Calculate CO₂e savings from various interventions.</CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                    <Calculator className="h-6 w-6" />
+                    Carbon Credit Estimator Tool
+                </CardTitle>
+                <CardDescription>Calculate carbon credits from various renewable energy and agricultural interventions.</CardDescription>
             </CardHeader>
             <CardContent>
                 <form onSubmit={handleSubmit} ref={formRef} className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div className="space-y-2">
-                            <Label htmlFor="solarMWh">Solar Generated (MWh)</Label>
-                            <Input id="solarMWh" name="solarMWh" type="number" step="any" placeholder="e.g., 100" />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="agroforestry">Agroforestry Area (ha)</Label>
-                            <Input id="agroforestry" name="agroforestry" type="number" step="any" placeholder="e.g., 10" />
+                            <Label htmlFor="capacity">Installed Capacity (MW)</Label>
+                            <Input id="capacity" name="capacity" type="number" step="0.1" placeholder="e.g., 35" />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="dripArea">Drip Irrigation Area (ha)</Label>
-                            <Input id="dripArea" name="dripArea" type="number" step="any" placeholder="e.g., 50" />
+                            <Input id="dripArea" name="dripArea" type="number" step="0.1" placeholder="e.g., 20" />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="biogas">Biogas Used (m³) <span className="text-xs text-muted-foreground">(optional)</span></Label>
-                            <Input id="biogas" name="biogas" type="number" step="any" placeholder="e.g., 500" />
+                            <Label htmlFor="agroArea">Agroforestry Area (ha)</Label>
+                            <Input id="agroArea" name="agroArea" type="number" step="0.1" placeholder="e.g., 50" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="timeframe">Select Timeframe</Label>
+                            <Select name="timeframe" defaultValue="year">
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="year">Yearly</SelectItem>
+                                    <SelectItem value="month">Monthly</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
                     <div className="flex gap-4">
                         <Button type="submit">Calculate</Button>
-                        {results && <Button variant="outline" onClick={() => handleClear()}>Clear</Button>}
+                        {calculationSummary && <Button variant="outline" onClick={() => handleClear()}>Clear</Button>}
                     </div>
                 </form>
 
-                {results && (
-                    <div className="mt-6 p-4 bg-muted/50 rounded-lg space-y-2">
-                        <h4 className="font-bold text-lg">Calculation Results:</h4>
-                        <p>Solar Generated: {results.solarMWh?.toFixed(2)} MWh/year</p>
-                        <p>Solar: {results.solar.toFixed(2)} tCO₂e/year</p>
-                        <p>Agroforestry: {results.agro.toFixed(2)} tCO₂e/year</p>
-                        <p>Drip Irrigation: {results.drip.toFixed(2)} tCO₂e/year</p>
-                        <p>Biogas: {results.bio.toFixed(2)} tCO₂e/year</p>
-                        <p className="font-bold text-primary pt-2">Total: {results.total.toFixed(2)} tCO₂e/year</p>
+                {calculationSummary && (
+                    <div className="mt-8 space-y-6">
+                        <div className="rounded-lg border">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Category</TableHead>
+                                        <TableHead>Capacity / Area</TableHead>
+                                        <TableHead>Energy / Output</TableHead>
+                                        <TableHead>Emission Factor</TableHead>
+                                        <TableHead>Carbon Credits (tCO₂e)</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {calculationSummary.results.map((result, index) => (
+                                        <TableRow key={index}>
+                                            <TableCell className="font-medium">{result.name}</TableCell>
+                                            <TableCell>{result.capacity}</TableCell>
+                                            <TableCell>{result.energy}</TableCell>
+                                            <TableCell>{result.emission}</TableCell>
+                                            <TableCell className="font-bold">
+                                                {result.credits.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+
+                        <div className="p-4 bg-muted/50 rounded-lg">
+                            <h3 className="text-lg font-bold mb-4">Calculation Summary ({calculationSummary.timeframe})</h3>
+                            <div className="space-y-2 text-sm">
+                                {calculationSummary.results.map((result, index) => (
+                                    <p key={index}>
+                                        <strong>{result.name}</strong>: {result.capacity} → {result.energy} → <strong>{result.credits.toFixed(2)} tCO₂e {calculationSummary.timeframe}</strong>
+                                    </p>
+                                ))}
+                                <Separator className="my-3" />
+                                <p className="text-lg font-bold text-primary">
+                                    Total Carbon Credits: {calculationSummary.totalCredits.toLocaleString(undefined, { maximumFractionDigits: 2 })} tCO₂e {calculationSummary.timeframe}
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 )}
             </CardContent>

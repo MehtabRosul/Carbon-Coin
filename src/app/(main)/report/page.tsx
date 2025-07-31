@@ -32,14 +32,15 @@ interface UserData {
   };
   calculations?: {
     solarCarbon?: {
-      results: {
-        solar: number;
-        agro: number;
-        drip: number;
-        bio: number;
-        ev: number;
-        total: number;
-      }
+      results: Array<{
+        name: string;
+        capacity: string;
+        energy: string;
+        emission: string;
+        credits: number;
+      }>;
+      totalCredits: number;
+      timeframe: string;
     };
     dripIrrigation?: {
       totalSavings: number;
@@ -267,7 +268,7 @@ function ReportPageContent() {
   
   const { name, projectDetails, calculations, agriCarbonPlots } = userData;
   const interventions: string[] = [];
-  const hasAgriPV = calculations?.solarCarbon || calculations?.dripIrrigation;
+  const hasAgriPV = calculations?.solarCarbon?.results || calculations?.dripIrrigation;
   const hasSOC = calculations?.socSequestration || (agriCarbonPlots && Object.keys(agriCarbonPlots).length > 0);
 
   if (hasAgriPV) interventions.push("AgriPV");
@@ -309,14 +310,21 @@ function ReportPageContent() {
     }
     
     // Rule 4: AgriPV (solar, agro, bio)
-    if (calculations?.solarCarbon?.results?.solar || calculations?.solarCarbon?.results?.agro || calculations?.solarCarbon?.results?.bio) {
-        active.add(7);
-        active.add(13);
+    if (calculations?.solarCarbon?.results) {
+        const hasSolar = calculations.solarCarbon.results.some(r => r.name.includes('Solar'));
+        const hasAgro = calculations.solarCarbon.results.some(r => r.name.includes('Agroforestry'));
+        const hasBiomass = calculations.solarCarbon.results.some(r => r.name.includes('Biomass'));
+        
+        if (hasSolar || hasAgro || hasBiomass) {
+            active.add(7);
+            active.add(13);
+        }
     }
     
-    // Rule 5: EV calculation
-    if (calculations?.solarCarbon?.results?.ev) {
-        active.add(11);
+    // Rule 5: Wind calculation
+    if (calculations?.solarCarbon?.results?.some(r => r.name.includes('Wind'))) {
+        active.add(7);
+        active.add(13);
     }
     
     return active;
@@ -353,14 +361,21 @@ function ReportPageContent() {
                               <CardTitle className="font-headline">AgriPV & Irrigation</CardTitle>
                           </CardHeader>
                           <CardContent className="space-y-2 text-sm">
-                              <p>Solar: <strong>{calculations?.solarCarbon?.results.solar?.toFixed(2) || '0.00'} tCO₂e</strong></p>
-                              <p>Agroforestry: <strong>{calculations?.solarCarbon?.results.agro?.toFixed(2) || '0.00'} tCO₂e</strong></p>
-                              <p>Biogas: <strong>{calculations?.solarCarbon?.results.bio?.toFixed(2) || '0.00'} tCO₂e</strong></p>
-                              <p>EV Savings: <strong>{calculations?.solarCarbon?.results.ev?.toFixed(2) || '0.00'} tCO₂e</strong></p>
-                              <hr className="my-2" />
-                              <p className="font-bold pt-2">Total Agri-PV: <strong>{calculations?.solarCarbon?.results.total?.toFixed(2) || '0.00'} tCO₂e</strong></p>
-                              <hr className="my-2" />
-                              <p>Drip Irrigation: <strong>{calculations?.dripIrrigation?.totalSavings?.toFixed(2) || '0.00'} tCO₂e</strong></p>
+                              {calculations?.solarCarbon?.results ? (
+                                <>
+                                  {calculations.solarCarbon.results.map((result, index) => (
+                                    <p key={index}>{result.name}: <strong>{result.credits.toFixed(2)} tCO₂e</strong></p>
+                                  ))}
+                                  <hr className="my-2" />
+                                  <p className="font-bold pt-2">Total Carbon Credits: <strong>{calculations.solarCarbon.totalCredits?.toFixed(2) || '0.00'} tCO₂e {calculations.solarCarbon.timeframe}</strong></p>
+                                </>
+                              ) : (
+                                <>
+                                  <p>Solar: <strong>0.00 tCO₂e</strong></p>
+                                  <p>Agroforestry: <strong>0.00 tCO₂e</strong></p>
+                                  <p>Drip Irrigation: <strong>{calculations?.dripIrrigation?.totalSavings?.toFixed(2) || '0.00'} tCO₂e</strong></p>
+                                </>
+                              )}
                           </CardContent>
                       </Card>
 
