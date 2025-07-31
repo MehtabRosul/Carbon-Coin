@@ -327,8 +327,8 @@ function ReportPageContent() {
   return (
     <div className="w-full flex flex-col items-center">
       <div className="w-full max-w-5xl">
-        <PageHeader title="Generated Report">
-            <Button onClick={handleDownload} disabled={!reportRef.current}>
+       <PageHeader title="Generated Report">
+            <Button onClick={handleDownload}>
                 <Download className="mr-2 h-4 w-4" />
                 Download Report
             </Button>
