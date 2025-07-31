@@ -39,11 +39,10 @@ function SolarCarbonCalculator() {
             if (data && data.results) {
                 setResults(data.results);
                 if (formRef.current && data.inputs) {
-                    (formRef.current.elements.namedItem("solar") as HTMLInputElement).value = data.inputs.s || "";
+                    (formRef.current.elements.namedItem("solarMWh") as HTMLInputElement).value = data.inputs.solarMWh || "";
                     (formRef.current.elements.namedItem("agroforestry") as HTMLInputElement).value = data.inputs.a || "";
-                    (formRef.current.elements.namedItem("irrigation") as HTMLInputElement).value = data.inputs.d || "";
+                    (formRef.current.elements.namedItem("dripArea") as HTMLInputElement).value = data.inputs.dripArea || "";
                     (formRef.current.elements.namedItem("biogas") as HTMLInputElement).value = data.inputs.b || "";
-                    (formRef.current.elements.namedItem("ev") as HTMLInputElement).value = data.inputs.evInput || "";
                 }
             }
         });
@@ -64,20 +63,22 @@ function SolarCarbonCalculator() {
 
         const formData = new FormData(e.currentTarget)
         
-        const s = parseFloat(formData.get("solar") as string) || 0
+        // Solar calculation inputs
+        const solarMWh = parseFloat(formData.get("solarMWh") as string) || 0 // MWh directly from user
+        
+        // Other inputs
         const a = parseFloat(formData.get("agroforestry") as string) || 0
-        const d = parseFloat(formData.get("irrigation") as string) || 0
+        const dripArea = parseFloat(formData.get("dripArea") as string) || 0 // ha for drip irrigation
         const b = parseFloat(formData.get("biogas") as string) || 0
-        const evInput = parseFloat(formData.get("ev") as string) || 0
 
-        const solar = s * 0.82
-        const agro = a * 7
-        const drip = ((d * 1200) / 1000) * 0.82
-        const bio = (b * 1.8) / 1000
-        const evSavings = evInput * 0.12
-        const total = solar + agro + drip + bio + evSavings
+        // Calculations
+        const solar = solarMWh * 0.82 // 0.82 tCO₂e/MWh
+        const agro = a * 7 // 7 tCO₂e/ha
+        const drip = dripArea * 1.2 * 0.82 // ha × 1.2 × 0.82 tCO₂e/MWh
+        const bio = (b * 1.8) / 1000 // 1.8 kgCO₂e/m³ converted to tCO₂e
+        const total = solar + agro + drip + bio
 
-        const calculationResults = { solar, agro, drip, bio, ev: evSavings, total };
+        const calculationResults = { solar, agro, drip, bio, total, solarMWh, dripArea };
         setResults(calculationResults);
 
         const dbPath = getDbPath();
@@ -88,7 +89,7 @@ function SolarCarbonCalculator() {
 
         try {
             const dataToSave = {
-                inputs: { s, a, d, b, evInput },
+                inputs: { solarMWh, a, dripArea, b },
                 results: calculationResults
             };
             const calcRef = ref(db, dbPath);
@@ -100,10 +101,23 @@ function SolarCarbonCalculator() {
         }
     }
     
-    const handleClear = () => {
+    const handleClear = async () => {
         setResults(null);
         if (formRef.current) {
             formRef.current.reset();
+        }
+        
+        // Clear data from database
+        const dbPath = getDbPath();
+        if (dbPath) {
+            try {
+                const calcRef = ref(db, dbPath);
+                await set(calcRef, null);
+                toast({ title: "Cleared", description: "Calculation data has been cleared." });
+            } catch (error) {
+                console.error("Error clearing data:", error);
+                toast({ title: "Clear Failed", description: "Could not clear calculation data.", variant: "destructive" });
+            }
         }
     }
 
@@ -117,40 +131,36 @@ function SolarCarbonCalculator() {
                 <form onSubmit={handleSubmit} ref={formRef} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div className="space-y-2">
-                            <Label htmlFor="solar">Solar Generated (MWh)</Label>
-                            <Input id="solar" name="solar" type="number" step="any" placeholder="e.g., 100" />
+                            <Label htmlFor="solarMWh">Solar Generated (MWh)</Label>
+                            <Input id="solarMWh" name="solarMWh" type="number" step="any" placeholder="e.g., 100" />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="agroforestry">Agroforestry Area (ha)</Label>
                             <Input id="agroforestry" name="agroforestry" type="number" step="any" placeholder="e.g., 10" />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="irrigation">Drip Irrigation Area (ha)</Label>
-                            <Input id="irrigation" name="irrigation" type="number" step="any" placeholder="e.g., 50" />
+                            <Label htmlFor="dripArea">Drip Irrigation Area (ha)</Label>
+                            <Input id="dripArea" name="dripArea" type="number" step="any" placeholder="e.g., 50" />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="biogas">Biogas Used (m³)</Label>
+                            <Label htmlFor="biogas">Biogas Used (m³) <span className="text-xs text-muted-foreground">(optional)</span></Label>
                             <Input id="biogas" name="biogas" type="number" step="any" placeholder="e.g., 500" />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="ev">EV Distance (km/year)</Label>
-                            <Input id="ev" name="ev" type="number" step="any" placeholder="e.g., 15000" />
                         </div>
                     </div>
                     <div className="flex gap-4">
                         <Button type="submit">Calculate</Button>
-                        {results && <Button variant="outline" onClick={handleClear}>Clear</Button>}
+                        {results && <Button variant="outline" onClick={() => handleClear()}>Clear</Button>}
                     </div>
                 </form>
 
                 {results && (
                     <div className="mt-6 p-4 bg-muted/50 rounded-lg space-y-2">
                         <h4 className="font-bold text-lg">Calculation Results:</h4>
+                        <p>Solar Generated: {results.solarMWh?.toFixed(2)} MWh/year</p>
                         <p>Solar: {results.solar.toFixed(2)} tCO₂e/year</p>
                         <p>Agroforestry: {results.agro.toFixed(2)} tCO₂e/year</p>
-                        <p>Irrigation: {results.drip.toFixed(2)} tCO₂e/year</p>
+                        <p>Drip Irrigation: {results.drip.toFixed(2)} tCO₂e/year</p>
                         <p>Biogas: {results.bio.toFixed(2)} tCO₂e/year</p>
-                        <p>EV: {results.ev.toFixed(2)} tCO₂e/year</p>
                         <p className="font-bold text-primary pt-2">Total: {results.total.toFixed(2)} tCO₂e/year</p>
                     </div>
                 )}
@@ -225,10 +235,23 @@ function DripIrrigationCalculator() {
         }
     }
 
-     const handleClear = () => {
+     const handleClear = async () => {
         setResult(null);
         if (formRef.current) {
             formRef.current.reset();
+        }
+        
+        // Clear data from database
+        const dbPath = getDbPath();
+        if (dbPath) {
+            try {
+                const calcRef = ref(db, dbPath);
+                await set(calcRef, null);
+                toast({ title: "Cleared", description: "Calculation data has been cleared." });
+            } catch (error) {
+                console.error("Error clearing data:", error);
+                toast({ title: "Clear Failed", description: "Could not clear calculation data.", variant: "destructive" });
+            }
         }
     }
 
@@ -252,7 +275,7 @@ function DripIrrigationCalculator() {
                     </div>
                      <div className="flex gap-4">
                         <Button type="submit">Calculate</Button>
-                        {result && <Button variant="outline" onClick={handleClear}>Clear</Button>}
+                        {result && <Button variant="outline" onClick={() => handleClear()}>Clear</Button>}
                     </div>
                 </form>
                  {result && <p className="font-bold mt-4 text-primary">{result}</p>}
