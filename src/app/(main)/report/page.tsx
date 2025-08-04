@@ -344,90 +344,102 @@ function ReportPageContent() {
       </div>
       
       <div id="report-container" className="flex justify-center bg-muted/30 p-4 sm:p-8 rounded-lg w-full">
-        <div ref={reportRef} className="bg-card text-card-foreground shadow-lg" style={{ width: '210mm', minHeight: '297mm', padding: '15mm'}}>
-          <div id="report-content" style={{fontFamily: 'Alegreya, serif'}}>
-              <header className="flex items-center justify-between pb-4 border-b-2 border-primary">
-                  <Logo />
-                  <h1 className="text-3xl font-headline font-bold text-primary">Carbon Impact Report</h1>
-              </header>
-              <main className="mt-8">
-                  <p className="text-base leading-relaxed text-justify">
-                      The Company <strong>{name || 'N/A'}</strong> is working on {interventions.length > 0 ? interventions.join(' and ') : 'carbon reduction initiatives'}. The project name is <strong>{projectDetails?.projectName || 'N/A'}</strong> and the address is <strong>{projectDetails?.location || 'N/A'}</strong>. The location coordinates are Latitude: <strong>{decryptedCoordinates?.latitude?.toFixed(6) || 'N/A'}</strong>, Longitude: <strong>{decryptedCoordinates?.longitude?.toFixed(6) || 'N/A'}</strong>. This project is expected to generate carbon credits, impacting Sustainable Development Goals.
-                  </p>
+                 <div ref={reportRef} className="bg-card text-card-foreground shadow-lg flex flex-col" style={{ width: '210mm', minHeight: '297mm', padding: '15mm'}}>
+           <div id="report-content" className="flex-1" style={{fontFamily: 'Alegreya, serif'}}>
+               <header className="flex items-center justify-between pb-4 border-b-2 border-primary">
+                   <Logo />
+                   <h1 className="text-3xl font-headline font-bold text-primary">Carbon Impact Report</h1>
+               </header>
+               <main className="mt-8">
+                   <p className="text-base leading-relaxed text-justify">
+                       The Company <strong>{name || 'N/A'}</strong> is working on {interventions.length > 0 ? interventions.join(' and ') : 'carbon reduction initiatives'}. The project name is <strong>{projectDetails?.projectName || 'N/A'}</strong> and the address is <strong>{projectDetails?.location || 'N/A'}</strong>. The location coordinates are Latitude: <strong>{decryptedCoordinates?.latitude?.toFixed(6) || 'N/A'}</strong>, Longitude: <strong>{decryptedCoordinates?.longitude?.toFixed(6) || 'N/A'}</strong>. This project is expected to generate carbon credits, impacting Sustainable Development Goals.
+                   </p>
 
-                  <div className="mt-8 grid grid-cols-2 gap-8">
-                      <Card className="col-span-1 border">
-                          <CardHeader>
-                              <CardTitle className="font-headline">AgriPV & Irrigation</CardTitle>
-                          </CardHeader>
-                          <CardContent className="space-y-2 text-sm">
-                              {calculations?.solarCarbon?.results ? (
-                                <>
-                                  {calculations.solarCarbon.results.map((result, index) => (
-                                    <p key={index}>{result.name}: <strong>{result.credits.toFixed(2)} tCO₂e</strong></p>
-                                  ))}
-                                  <hr className="my-2" />
-                                  <p className="font-bold pt-2">Total Carbon Credits: <strong>{calculations.solarCarbon.totalCredits?.toFixed(2) || '0.00'} tCO₂e {calculations.solarCarbon.timeframe}</strong></p>
-                                </>
-                              ) : (
-                                <>
-                                  <p>Solar: <strong>0.00 tCO₂e</strong></p>
-                                  <p>Agroforestry: <strong>0.00 tCO₂e</strong></p>
-                                  <p>Drip Irrigation: <strong>{calculations?.dripIrrigation?.totalSavings?.toFixed(2) || '0.00'} tCO₂e</strong></p>
-                                </>
-                              )}
-                          </CardContent>
-                      </Card>
-
+                   <div className="mt-8 grid grid-cols-2 gap-8">
                        <Card className="col-span-1 border">
-                          <CardHeader>
-                              <CardTitle className="font-headline">Soil Organic Carbon</CardTitle>
-                          </CardHeader>
-                          <CardContent className="space-y-2 text-sm">
-                               <p>SOC Sequestration: <strong>{calculations?.socSequestration?.co2e?.toFixed(2) || '0.00'} tCO₂e</strong></p>
-                               <hr className="my-2" />
-                               <div className="font-bold">AgriCarbon Plots:</div>
-                               {agriCarbonPlots && Object.keys(agriCarbonPlots).length > 0 ? Object.values(agriCarbonPlots).map(plot => (
-                                   <div key={plot.plotId} className="flex justify-between">
-                                       <span>Plot {plot.plotId}:</span>
-                                       <strong>{plot.co2e.toFixed(2)} tCO₂e</strong>
-                                   </div>
-                               )) : <p>No plots added.</p>}
-                               <hr className="my-2"/>
-                               <p className="font-bold pt-2">Total from Plots: <strong>{totalAgriCarbonCo2e.toFixed(2)} tCO₂e</strong></p>
-                          </CardContent>
-                      </Card>
-                  </div>
-                  
-                  <div className="mt-8 pt-4 border-t-2 border-muted">
-                    <h3 className="text-xl font-headline font-bold text-center mb-4">Sustainable Development Goals Impacted</h3>
-                    <div className="grid grid-cols-9 gap-2">
-                      {SDG_ICON_URLS.map((url, index) => {
-                          const sdgNumber = index + 1;
-                          const isActive = activeSdgs.has(sdgNumber);
-                          const fallbackUrl = FALLBACK_URLS[index];
-                          return (
-                              <div key={sdgNumber} className="relative">
-                                <img
-                                  src={url}
-                                  alt={`SDG ${sdgNumber}`}
-                                  className={`aspect-square w-12 h-12 ${isActive ? '' : 'opacity-20 grayscale'}`}
-                                  loading="lazy"
-                                  onError={(e) => {
-                                    console.warn(`Failed to load SDG ${sdgNumber} icon, using fallback`);
-                                    // Use fallback image
-                                    const img = e.target as HTMLImageElement;
-                                    img.src = fallbackUrl;
-                                  }}
-                                />
-                              </div>
-                          );
-                      })}
-                    </div>
-                  </div>
-              </main>
-          </div>
-        </div>
+                           <CardHeader>
+                               <CardTitle className="font-headline">AgriPV & Irrigation</CardTitle>
+                           </CardHeader>
+                           <CardContent className="space-y-2 text-sm">
+                               {calculations?.solarCarbon?.results ? (
+                                 <>
+                                   {calculations.solarCarbon.results.map((result, index) => (
+                                     <p key={index}>{result.name}: <strong>{result.credits.toFixed(2)} tCO₂e</strong></p>
+                                   ))}
+                                   <hr className="my-2" />
+                                   <p className="font-bold pt-2">Total Carbon Credits: <strong>{calculations.solarCarbon.totalCredits?.toFixed(2) || '0.00'} tCO₂e {calculations.solarCarbon.timeframe}</strong></p>
+                                 </>
+                               ) : (
+                                 <>
+                                   <p>Solar: <strong>0.00 tCO₂e</strong></p>
+                                   <p>Agroforestry: <strong>0.00 tCO₂e</strong></p>
+                                   <p>Drip Irrigation: <strong>{calculations?.dripIrrigation?.totalSavings?.toFixed(2) || '0.00'} tCO₂e</strong></p>
+                                 </>
+                               )}
+                           </CardContent>
+                       </Card>
+
+                        <Card className="col-span-1 border">
+                           <CardHeader>
+                               <CardTitle className="font-headline">Soil Organic Carbon</CardTitle>
+                           </CardHeader>
+                           <CardContent className="space-y-2 text-sm">
+                                <p>SOC Sequestration: <strong>{calculations?.socSequestration?.co2e?.toFixed(2) || '0.00'} tCO₂e</strong></p>
+                                <hr className="my-2" />
+                                <div className="font-bold">AgriCarbon Plots:</div>
+                                {agriCarbonPlots && Object.keys(agriCarbonPlots).length > 0 ? Object.values(agriCarbonPlots).map(plot => (
+                                    <div key={plot.plotId} className="flex justify-between">
+                                        <span>Plot {plot.plotId}:</span>
+                                        <strong>{plot.co2e.toFixed(2)} tCO₂e</strong>
+                                    </div>
+                                )) : <p>No plots added.</p>}
+                                <hr className="my-2"/>
+                                <p className="font-bold pt-2">Total from Plots: <strong>{totalAgriCarbonCo2e.toFixed(2)} tCO₂e</strong></p>
+                           </CardContent>
+                       </Card>
+                   </div>
+                   
+                   <div className="mt-8 pt-4 border-t-2 border-muted">
+                     <h3 className="text-xl font-headline font-bold text-center mb-4">Sustainable Development Goals Impacted</h3>
+                     <div className="grid grid-cols-9 gap-2">
+                       {SDG_ICON_URLS.map((url, index) => {
+                           const sdgNumber = index + 1;
+                           const isActive = activeSdgs.has(sdgNumber);
+                           const fallbackUrl = FALLBACK_URLS[index];
+                           return (
+                               <div key={sdgNumber} className="relative">
+                                 <img
+                                   src={url}
+                                   alt={`SDG ${sdgNumber}`}
+                                   className={`aspect-square w-12 h-12 ${isActive ? '' : 'opacity-20 grayscale'}`}
+                                   loading="lazy"
+                                   onError={(e) => {
+                                     console.warn(`Failed to load SDG ${sdgNumber} icon, using fallback`);
+                                     // Use fallback image
+                                     const img = e.target as HTMLImageElement;
+                                     img.src = fallbackUrl;
+                                   }}
+                                 />
+                               </div>
+                           );
+                       })}
+                     </div>
+                   </div>
+               </main>
+           </div>
+           
+           {/* Footer - Now positioned at the bottom of the page */}
+           <footer className="mt-auto pt-6 border-t-2 border-primary/20">
+             <div className="text-center">
+               <p className="text-lg font-semibold text-primary tracking-wide" style={{fontFamily: 'Alegreya, serif'}}>
+                 CarbonCoin
+               </p>
+               <p className="text-sm text-muted-foreground italic mt-1" style={{fontFamily: 'Alegreya, serif'}}>
+                 powered by Ecopreneure
+               </p>
+             </div>
+           </footer>
+         </div>
       </div>
     </div>
   )

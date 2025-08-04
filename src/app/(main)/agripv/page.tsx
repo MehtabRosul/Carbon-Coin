@@ -99,10 +99,9 @@ function SolarCarbonCalculator() {
 
         const results: CalculationResult[] = [];
 
-        // Solar PV, Wind, and Biomass calculations
+        // Solar PV and Biomass calculations
         const projects = [
             { name: "Solar PV", factor: 0.19, emission: 0.82 },
-            { name: "Wind", factor: 0.25, emission: 0.82 },
             { name: "Biomass/WtE", factor: 0.80, emission: 0.95 }
         ];
 
